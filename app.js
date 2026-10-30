@@ -130,15 +130,15 @@ document.addEventListener('DOMContentLoaded', async () => {
  */
 function initMap() {
   // 1. Google Satellite Hybrid (Realtime Satellite + Roads + Village/Town Labels)
-  googleHybridLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-    subdomains: ['0', '1', '2', '3'],
+  googleHybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     maxZoom: 20,
-    attribution: '&copy; Google Satellite & Roads'
+    attribution: '&copy; Google Maps'
   });
 
-  // 2. Google Maps Standard Road network
-  googleRoadsLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-    subdomains: ['0', '1', '2', '3'],
+  // 2. Google Maps Standard Road network (Clean Realtime Google Map)
+  googleRoadsLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     maxZoom: 20,
     attribution: '&copy; Google Maps'
   });
