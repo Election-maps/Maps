@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Election Police Administration Dashboard</title>
+    <title>Srikakulam District Police | Dashboard</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,22 +21,27 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="app.css?v=4.0" />
+    <link rel="stylesheet" href="app.css?v=5.0" />
 </head>
 <body class="bg-gray-100 font-sans antialiased text-[11px] text-gray-800 flex flex-col min-h-screen">
 
-    <!-- Top Navigation Bar (Exact nex-gen.in layout) -->
+    <!-- Top Navigation Bar -->
     <nav class="bg-gray-900 text-white shadow-md sticky top-0 z-50">
         <div class="w-full px-4 py-2 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-shield-halved text-blue-500 text-sm"></i>
-                <span class="text-sm font-bold tracking-wide">Election Police Administration Dashboard</span>
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow">
+                    <i class="fa-solid fa-shield-halved text-base"></i>
+                </div>
+                <div class="flex flex-col leading-tight">
+                    <span class="text-sm sm:text-base font-extrabold tracking-wide text-white uppercase">Srikakulam District Police</span>
+                    <span class="text-[10px] text-blue-400 font-bold tracking-wider uppercase">Dashboard</span>
+                </div>
             </div>
             
             <div class="flex flex-wrap space-x-1 gap-y-1" id="nav-buttons-container">
                 <button onclick="switchView('map')" id="nav-btn-map" class="px-2.5 py-1 rounded text-[11px] font-medium bg-blue-600 text-white shadow transition flex items-center space-x-1">
-                    <i class="fa-solid fa-map-location-dot"></i>
-                    <span>Election Route Map</span>
+                    <i class="fa-solid fa-satellite-dish"></i>
+                    <span>Live Map</span>
                 </button>
                 <button onclick="switchView('report')" id="nav-btn-report" class="px-2.5 py-1 rounded text-[11px] font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 transition flex items-center space-x-1">
                     <i class="fa-solid fa-table-list"></i>
@@ -64,14 +69,14 @@
         <!-- ================= PAGE 1: ELECTION ROUTE MAP (Exact nex-gen.in) ================= -->
         <div id="view-map" class="page-view bg-white p-1 rounded-lg shadow-md relative flex-1 flex flex-col min-h-[calc(100vh-80px)]">
             
-            <!-- Filter Dropdown Bar (Top Right Floating) -->
+            <!-- Filter Dropdown Bar (Top Right Floating - Instant Auto-Pop) -->
             <div class="absolute top-4 right-4 z-[1000] bg-white p-2.5 rounded-lg shadow-xl border border-gray-200 flex flex-wrap items-center gap-2 max-w-4xl">
-                <form id="map-filter-form" onsubmit="event.preventDefault(); applyMapFilters();" class="flex flex-wrap items-center gap-2">
+                <form id="map-filter-form" onsubmit="event.preventDefault(); applyMapFilters(true);" class="flex flex-wrap items-center gap-2">
                     
                     <!-- PS Name Dropdown -->
                     <div class="flex flex-col">
                         <label for="map_psname" class="font-medium text-gray-700 text-[10px]">PS Name:</label>
-                        <select name="map_psname" id="map_psname" onchange="onPSNameChange(this.value)" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <select name="map_psname" id="map_psname" onchange="onPSNameChange(this.value); applyMapFilters(true);" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
                             <option value="">-- All PS Names --</option>
                         </select>
                     </div>
@@ -79,7 +84,7 @@
                     <!-- Route No Dropdown -->
                     <div class="flex flex-col">
                         <label for="map_route_no" class="font-medium text-gray-700 text-[10px]">Route No:</label>
-                        <select name="map_route_no" id="map_route_no" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <select name="map_route_no" id="map_route_no" onchange="applyMapFilters(true);" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
                             <option value="">-- All Routes --</option>
                         </select>
                     </div>
@@ -87,7 +92,7 @@
                     <!-- Location Dropdown -->
                     <div class="flex flex-col max-w-[200px]">
                         <label for="map_location" class="font-medium text-gray-700 text-[10px]">Location:</label>
-                        <select name="map_location" id="map_location" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 truncate">
+                        <select name="map_location" id="map_location" onchange="applyMapFilters(true);" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 truncate">
                             <option value="">-- All Locations --</option>
                         </select>
                     </div>
@@ -95,7 +100,7 @@
                     <!-- Category Dropdown -->
                     <div class="flex flex-col">
                         <label for="map_categorization_filter" class="font-medium text-gray-700 text-[10px]">Category:</label>
-                        <select name="map_categorization" id="map_categorization_filter" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <select name="map_categorization" id="map_categorization_filter" onchange="applyMapFilters(true);" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
                             <option value="">-- All Categories --</option>
                             <option value="NORMAL">Normal</option>
                             <option value="SENSITIVE">Sensitive</option>
@@ -109,6 +114,12 @@
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold transition shadow">
                             Apply
                         </button>
+                        <button type="button" onclick="resetMapFilters()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2.5 py-1 rounded text-xs font-semibold transition">
+                            Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
                         <button type="button" onclick="resetMapFilters()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2.5 py-1 rounded text-xs font-semibold transition">
                             Reset
                         </button>
@@ -306,9 +317,9 @@
     </div>
 
     <!-- Embedded Data Fallback (data.js defines window.ELECTION_DATA) -->
-    <script src="data.js?v=4.0"></script>
+    <script src="data.js?v=5.0"></script>
 
     <!-- Main Logic -->
-    <script src="app.js?v=4.0"></script>
+    <script src="app.js?v=5.0"></script>
 </body>
 </html>

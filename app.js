@@ -224,7 +224,7 @@ function updateLocationDropdown(psname) {
 /**
  * Apply Filters on Election Route Map
  */
-window.applyMapFilters = function() {
+window.applyMapFilters = function(autoPop = false) {
   const psname = document.getElementById('map_psname').value;
   const routeNo = document.getElementById('map_route_no').value;
   const location = document.getElementById('map_location').value;
@@ -238,7 +238,7 @@ window.applyMapFilters = function() {
     return true;
   });
 
-  renderMapStationsAndRoutes();
+  renderMapStationsAndRoutes(autoPop);
 };
 
 window.resetMapFilters = function() {
@@ -247,7 +247,7 @@ window.resetMapFilters = function() {
   document.getElementById('map_location').value = '';
   document.getElementById('map_categorization_filter').value = '';
   onPSNameChange('');
-  applyMapFilters();
+  applyMapFilters(false);
 };
 
 /**
@@ -285,7 +285,7 @@ function getStationIcon(categorization) {
 /**
  * Render Station Markers and Real Road Routes (OSRM Road Path)
  */
-function renderMapStationsAndRoutes() {
+function renderMapStationsAndRoutes(autoPop = false) {
   // Clear existing markers
   state.markerLayers.forEach(m => state.map.removeLayer(m));
   state.markerLayers = [];
@@ -377,14 +377,17 @@ function renderMapStationsAndRoutes() {
     routeGroups[rNo].push(latLng);
   });
 
-  // Draw Real Road Driving Routes using OSRM
-  drawRoadRoutes(routeGroups, routeStaffMap);
-
-  // Update Top Left Route Summary Chip if filtered by Route
   const routeNo = document.getElementById('map_route_no').value;
   const psname = document.getElementById('map_psname').value;
-  const chip = document.getElementById('route-summary-chip');
+  const locationVal = document.getElementById('map_location').value;
 
+  // Only draw road routes if a specific Police Station or Route is chosen (prevents clutter)
+  if (psname || routeNo) {
+    drawRoadRoutes(routeGroups, routeStaffMap);
+  }
+
+  // Update Top Left Route Summary Chip if filtered by Route
+  const chip = document.getElementById('route-summary-chip');
   if (routeNo && validStations.length > 0) {
     document.getElementById('route-chip-title').textContent = `${psname || 'Police'} Route - ${routeNo}`;
     document.getElementById('route-chip-count').textContent = `${validStations.length} Polling Stations`;
@@ -398,6 +401,25 @@ function renderMapStationsAndRoutes() {
   // Auto-fit bounds
   if (bounds.length > 0) {
     state.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+  }
+
+  // Automatic Pop feature: auto-open popup on filter selection
+  if (autoPop && state.markerLayers.length > 0) {
+    let targetMarker = null;
+
+    if (locationVal) {
+      const idx = validStations.findIndex(s => s.pslName.toLowerCase().includes(locationVal.toLowerCase()));
+      if (idx !== -1) targetMarker = state.markerLayers[idx];
+    } else {
+      targetMarker = state.markerLayers[0];
+    }
+
+    if (targetMarker) {
+      setTimeout(() => {
+        targetMarker.openPopup();
+        state.map.setView(targetMarker.getLatLng(), Math.max(state.map.getZoom(), 15), { animate: true });
+      }, 250);
+    }
   }
 }
 
