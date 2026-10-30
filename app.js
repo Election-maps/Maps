@@ -439,6 +439,15 @@ function setupEventListeners() {
     closeDrawer();
   });
 
+  // Close Route Navigator Panel
+  const btnCloseRoutePanel = document.getElementById('btn-close-route-panel');
+  if (btnCloseRoutePanel) {
+    btnCloseRoutePanel.addEventListener('click', () => {
+      const panel = document.getElementById('route-map-panel');
+      if (panel) panel.classList.add('hidden');
+    });
+  }
+
   // Directory search
   document.getElementById('directory-search').addEventListener('input', (e) => {
     renderEmergencyDirectory(e.target.value.toLowerCase().trim());
@@ -742,57 +751,179 @@ function buildMarkerPopupHtml(item) {
 /**
  * Render Route Polyline connecting stations sequentially
  */
+// Route Colors Palette for Multi-Route Mapping
+const ROUTE_COLORS = [
+  '#2563eb', '#ea580c', '#16a34a', '#9333ea', '#dc2626', 
+  '#0891b2', '#ca8a04', '#db2777', '#4f46e5', '#059669', 
+  '#d97706', '#7c3aed'
+];
+
+/**
+ * Render Route Polylines and Route-Wise Map Integration
+ */
 function renderRoutePolyline() {
+  // Clear any existing route layers
   if (state.activeRoutePolyline) {
-    map.removeLayer(state.activeRoutePolyline);
+    if (Array.isArray(state.activeRoutePolyline)) {
+      state.activeRoutePolyline.forEach(l => map.removeLayer(l));
+    } else {
+      map.removeLayer(state.activeRoutePolyline);
+    }
     state.activeRoutePolyline = null;
   }
   state.activeRouteMarkers.forEach(m => map.removeLayer(m));
   state.activeRouteMarkers = [];
 
+  const routePanel = document.getElementById('route-map-panel');
   const shouldConnect = document.getElementById('toggle-route-line').checked;
-  if (!shouldConnect) return;
+  if (!shouldConnect) {
+    if (routePanel) routePanel.classList.add('hidden');
+    return;
+  }
 
-  // If a specific route is chosen (and optionally mandal)
+  // CASE 1: Single Route Selected -> Highlight Route with Waypoints and Open Route Navigator
   if (state.filters.route) {
     const routeStations = state.filteredData
       .filter(d => d.hasCoords)
       .sort((a,b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
 
-    if (routeStations.length > 1) {
+    if (routeStations.length > 0) {
       const latlngs = routeStations.map(s => [s.lat, s.lng]);
 
-      // Glowing route line
+      // Calculate total sequential distance in KM
+      let totalDist = 0;
+      for (let i = 0; i < routeStations.length - 1; i++) {
+        totalDist += getHaversineDistance(
+          routeStations[i].lat, routeStations[i].lng,
+          routeStations[i+1].lat, routeStations[i+1].lng
+        );
+      }
+
+      // Draw Main Route Polyline
       state.activeRoutePolyline = L.polyline(latlngs, {
         color: '#38bdf8',
-        weight: 4,
-        opacity: 0.85,
-        dashArray: '6, 8',
+        weight: 5,
+        opacity: 0.9,
+        dashArray: '8, 8',
         lineJoin: 'round'
       }).addTo(map);
 
-      // Add numbered stop badges
+      // Add Stop Markers with Stop Numbers
       routeStations.forEach((s, idx) => {
-        const stopIcon = L.divIcon({
+        const stopPin = L.divIcon({
           className: 'stop-pin-wrapper',
           html: `
-            <div style="background:#0284c7; color:#fff; font-size:10px; font-weight:800; border:2px solid #fff; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.4);">
+            <div style="background:#0284c7; color:#fff; font-size:11px; font-weight:800; border:2px solid #ffffff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.5); cursor:pointer;">
               ${idx + 1}
             </div>
           `,
-          iconSize: [22, 22],
-          iconAnchor: [11, 11]
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
         });
 
-        const m = L.marker([s.lat, s.lng], { icon: stopIcon, zIndexOffset: 500 }).addTo(map);
+        const m = L.marker([s.lat, s.lng], { icon: stopPin, zIndexOffset: 800 }).addTo(map);
         m.bindTooltip(`Stop ${idx + 1}: ${escapeHtml(s.pslName.split('\n')[0])}`, { direction: 'top' });
+        m.on('click', () => {
+          openStationDetails(s);
+        });
         state.activeRouteMarkers.push(m);
       });
 
-      map.fitBounds(state.activeRoutePolyline.getBounds().pad(0.15));
+      // Fit map to route
+      if (routeStations.length > 1) {
+        map.fitBounds(state.activeRoutePolyline.getBounds().pad(0.18));
+      } else {
+        map.setView([routeStations[0].lat, routeStations[0].lng], 14);
+      }
+
+      // Populate & Open Route Navigator Floating Card
+      if (routePanel) {
+        document.getElementById('route-panel-badge').textContent = `Route ${state.filters.route}`;
+        document.getElementById('route-panel-title').textContent = `${state.filters.mandal || 'Election'} Route Plan`;
+        document.getElementById('route-panel-stops-count').textContent = routeStations.length;
+        document.getElementById('route-panel-distance').textContent = `${totalDist.toFixed(1)} KM`;
+        const totalVoters = routeStations.reduce((a,c) => a + c.voters, 0);
+        document.getElementById('route-panel-voters').textContent = totalVoters.toLocaleString('en-IN');
+
+        // Multi-Stop Google Maps Navigation URL
+        const gmapsStops = routeStations.map(s => `${s.lat},${s.lng}`).join('/');
+        document.getElementById('route-panel-gmaps-link').href = `https://www.google.com/maps/dir/${gmapsStops}`;
+
+        // Render Stops Sequence in Panel
+        const stopsContainer = document.getElementById('route-panel-stops-list');
+        stopsContainer.innerHTML = routeStations.map((s, idx) => `
+          <div onclick="zoomToRouteStop(${s.lat}, ${s.lng}, '${s.id}')" 
+               class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-blue-500 cursor-pointer flex items-center justify-between text-xs transition">
+            <div class="flex items-center space-x-2 truncate">
+              <span class="w-5 h-5 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-[10px] shrink-0">
+                ${idx + 1}
+              </span>
+              <span class="font-medium text-white truncate" title="${escapeHtml(s.pslName)}">
+                ${escapeHtml(s.pslName.split('\n')[0])}
+              </span>
+            </div>
+            <span class="text-[10px] font-mono text-amber-400 shrink-0 ml-1">
+              ${s.voters} ఓట్లు
+            </span>
+          </div>
+        `).join('');
+
+        routePanel.classList.remove('hidden');
+      }
     }
+    return;
+  }
+
+  // CASE 2: Mandal Selected (or All) -> Render Multi-Route Map where each Route has its own color!
+  if (state.filters.mandal) {
+    if (routePanel) routePanel.classList.add('hidden');
+
+    const mandalStations = state.filteredData.filter(d => d.hasCoords);
+    const routesInMandal = [...new Set(mandalStations.map(d => d.route).filter(Boolean))].sort();
+
+    state.activeRoutePolyline = [];
+
+    routesInMandal.forEach((r, rIdx) => {
+      const color = ROUTE_COLORS[rIdx % ROUTE_COLORS.length];
+      const rStations = mandalStations
+        .filter(d => d.route === r)
+        .sort((a,b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
+
+      if (rStations.length > 1) {
+        const line = L.polyline(rStations.map(s => [s.lat, s.lng]), {
+          color: color,
+          weight: 4,
+          opacity: 0.8,
+          lineJoin: 'round'
+        }).addTo(map);
+
+        line.bindTooltip(`Route ${r}: ${rStations.length} కేంద్రాలు (క్లిక్ చేసి చూడండి)`, { sticky: true });
+        line.on('click', () => {
+          focusRouteOnMap(state.filters.mandal, r);
+        });
+
+        state.activeRoutePolyline.push(line);
+      }
+    });
+
+    if (state.activeRoutePolyline.length > 0) {
+      const group = L.featureGroup(state.activeRoutePolyline);
+      map.fitBounds(group.getBounds().pad(0.1));
+    }
+  } else {
+    if (routePanel) routePanel.classList.add('hidden');
   }
 }
+
+/**
+ * Zoom to specific stop from route panel
+ */
+window.zoomToRouteStop = function(lat, lng, id) {
+  if (map) {
+    map.setView([lat, lng], 16, { animate: true });
+    openStationDetailsById(id);
+  }
+};
 
 /**
  * Open Slide-over Drawer with Polling Station Details
@@ -1197,6 +1328,21 @@ function renderRoutesView() {
     const hyperCount = stations.filter(s => s.sensitivity === 'HYPER SENSITIVE').length;
     const sensitiveCount = stations.filter(s => s.sensitivity === 'SENSITIVE').length;
 
+    // Calculate approximate route distance
+    let routeDistance = 0;
+    const validStations = stations.filter(s => s.hasCoords);
+    for (let i = 0; i < validStations.length - 1; i++) {
+      routeDistance += getHaversineDistance(
+        validStations[i].lat, validStations[i].lng,
+        validStations[i+1].lat, validStations[i+1].lng
+      );
+    }
+
+    // Google Maps multi-stop URL
+    const gmapsMultiStopUrl = validStations.length > 0 
+      ? `https://www.google.com/maps/dir/${validStations.map(s => `${s.lat},${s.lng}`).join('/')}`
+      : '#';
+
     return `
       <div class="glass-card rounded-2xl p-5 border border-slate-800">
         <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800/80 gap-3">
@@ -1209,17 +1355,24 @@ function renderRoutesView() {
             </div>
             <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
               <span><i class="fa-solid fa-person-booth text-blue-400 mr-1"></i> కేంద్రాలు: <strong class="text-white">${stations.length}</strong></span>
+              <span><i class="fa-solid fa-road text-amber-400 mr-1"></i> దూరం: <strong class="text-white">~${routeDistance.toFixed(1)} KM</strong></span>
               <span><i class="fa-solid fa-users text-emerald-400 mr-1"></i> ఓటర్లు: <strong class="text-white">${totalVoters.toLocaleString('en-IN')}</strong></span>
               ${hyperCount > 0 ? `<span class="text-red-400 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>హైపర్: ${hyperCount}</span>` : ''}
               ${sensitiveCount > 0 ? `<span class="text-amber-400 font-semibold"><i class="fa-solid fa-shield mr-1"></i>సెన్సిటివ్: ${sensitiveCount}</span>` : ''}
             </div>
           </div>
 
-          <div class="flex items-center space-x-2">
+          <div class="flex flex-wrap items-center gap-2">
             <button onclick="focusRouteOnMap('${escapeHtml(group.mandal)}', '${escapeHtml(group.route)}')" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center space-x-1.5 shadow transition">
               <i class="fa-solid fa-map-location-dot"></i>
               <span>మ్యాప్‌లో రూట్ చూడు</span>
             </button>
+            ${validStations.length > 0 ? `
+              <a href="${gmapsMultiStopUrl}" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-semibold text-xs flex items-center space-x-1.5 transition" title="Open complete sequential route in Google Maps app">
+                <i class="fa-solid fa-diamond-turn-right"></i>
+                <span>గూగుల్ నావిగేషన్</span>
+              </a>
+            ` : ''}
           </div>
         </div>
 

@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="app.css?v=3.1" />
+  <link rel="stylesheet" href="app.css?v=3.5" />
 </head>
 <body class="bg-slate-950 text-slate-100 flex flex-col min-h-screen">
 
@@ -271,6 +271,57 @@
 
       <!-- Leaflet Map Container -->
       <div id="map" class="w-full flex-1"></div>
+
+      <!-- Floating Route-wise Map Navigator Card (Top Right) -->
+      <div id="route-map-panel" class="absolute top-4 right-4 z-20 max-w-sm w-full glass-panel rounded-2xl p-4 shadow-2xl border border-blue-500/40 hidden pointer-events-auto">
+        <div class="flex items-center justify-between pb-2.5 border-b border-slate-700/60">
+          <div class="flex items-center space-x-2">
+            <span id="route-panel-badge" class="px-2.5 py-0.5 rounded-lg bg-blue-600 text-white font-extrabold text-xs">
+              Route -
+            </span>
+            <h4 id="route-panel-title" class="text-sm font-bold text-white truncate max-w-[180px]">Mandal Route</h4>
+          </div>
+          <button id="btn-close-route-panel" class="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="mt-3 space-y-2 text-xs">
+          <!-- Stats Row -->
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+              <div class="text-[10px] text-slate-400">కేంద్రాలు</div>
+              <div id="route-panel-stops-count" class="font-extrabold text-white text-sm">0</div>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+              <div class="text-[10px] text-slate-400">అంచనా దూరం</div>
+              <div id="route-panel-distance" class="font-extrabold text-amber-400 text-sm">0 KM</div>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+              <div class="text-[10px] text-slate-400">ఓటర్లు</div>
+              <div id="route-panel-voters" class="font-extrabold text-blue-400 text-sm">0</div>
+            </div>
+          </div>
+
+          <!-- Multi-Stop Google Maps Navigation Button -->
+          <a id="route-panel-gmaps-link" href="#" target="_blank" 
+             class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-600 hover:opacity-90 text-white font-bold flex items-center justify-center space-x-2 shadow-lg transition">
+            <i class="fa-solid fa-route"></i>
+            <span>గూగుల్ మ్యాప్స్‌లో మొత్తం రూట్ నావిగేషన్</span>
+          </a>
+
+          <!-- Sequence of stops (Scrollable) -->
+          <div class="pt-1">
+            <div class="text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>రూట్ వరుస క్రమం (Stops):</span>
+              <span class="text-[10px] text-slate-400">క్లిక్ చేస్తే జూమ్ అవుతుంది</span>
+            </div>
+            <div id="route-panel-stops-list" class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Slide-over Drawer for Polling Station Details -->
       <div id="station-drawer" class="fixed inset-y-0 right-0 max-w-full flex pl-10 z-50 transform translate-x-full transition-transform duration-300 ease-in-out pointer-events-none">
@@ -686,9 +737,9 @@
   </footer>
 
   <!-- Embedded Data fallback (data.js defines window.ELECTION_DATA) -->
-  <script src="data.js?v=3.1"></script>
+  <script src="data.js?v=3.5"></script>
 
   <!-- Main Application Logic -->
-  <script src="app.js?v=3.1"></script>
+  <script src="app.js?v=3.5"></script>
 </body>
 </html>
