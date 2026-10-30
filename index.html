@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="te" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AP Election GeoPortal | Polling Stations & Route Maps</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col min-h-screen">
+
+  <!-- Top Navbar -->
+  <header class="glass-panel sticky top-0 z-50 border-b border-slate-800 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Brand / Title -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+            <i class="fa-solid fa-person-booth text-white text-lg"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center">
+                <span data-i18n="appTitle">AP Election GeoPortal</span>
+              </h1>
+              <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                Srikakulam ZPTC & MPTC
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 hidden sm:block" data-i18n="appSubtitle">
+              ఎన్నికల పోలింగ్ కేంద్రాలు, రూట్ మ్యాప్స్ & పోలీస్ బందోబస్తు నిర్వహణ
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick Summary Stats (Desktop) -->
+        <div class="hidden xl:flex items-center space-x-4 text-xs">
+          <div class="px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+            <span class="text-slate-400" data-i18n="totalPS">పోలింగ్ కేంద్రాలు:</span>
+            <span id="stat-total-ps" class="font-bold text-white">1,328</span>
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex items-center space-x-2">
+            <span class="text-slate-400" data-i18n="totalVoters">మొత్తం ఓటర్లు:</span>
+            <span id="stat-total-voters" class="font-bold text-amber-400">1.63M</span>
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-800/40 flex items-center space-x-1.5 text-red-300">
+            <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+            <span data-i18n="hyperSensitive">హైపర్ సెన్సిటివ్:</span>
+            <span id="stat-hyper-ps" class="font-bold">186</span>
+          </div>
+        </div>
+
+        <!-- Utility Action Buttons -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Live GPS Button -->
+          <button id="btn-live-location" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-1.5 shadow-md shadow-blue-600/30 transition" title="Find My Live Location">
+            <i class="fa-solid fa-location-crosshairs text-sm"></i>
+            <span class="hidden md:inline" data-i18n="myLocation">నా లొకేషన్</span>
+          </button>
+
+          <!-- Language Switcher -->
+          <button id="btn-toggle-lang" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1" title="Change Language">
+            <i class="fa-solid fa-globe text-slate-400"></i>
+            <span id="lang-label">తెలుగు</span>
+          </button>
+
+          <!-- Export CSV -->
+          <button id="btn-export-csv" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" title="Export to CSV / Excel">
+            <i class="fa-solid fa-file-excel text-emerald-400 mr-1"></i>
+            <span class="hidden lg:inline" data-i18n="export">ఎక్స్‌పోర్ట్</span>
+          </button>
+
+          <!-- Print Slip -->
+          <button onclick="window.print()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" title="Print Current View">
+            <i class="fa-solid fa-print text-slate-300"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Navigation Tabs Bar -->
+    <div class="bg-slate-900/95 border-t border-slate-800/80 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-2 overflow-x-auto py-2">
+        <button class="nav-tab active px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition flex items-center space-x-2 text-slate-300 hover:text-white" data-target="tab-map">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span data-i18n="tabMap">మ్యాప్ ఎక్స్‌ప్లోరర్</span>
+        </button>
+        <button class="nav-tab px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition flex items-center space-x-2 text-slate-300 hover:text-white" data-target="tab-stations">
+          <i class="fa-solid fa-list-check"></i>
+          <span data-i18n="tabStations">కేంద్రాల జాబితా</span>
+          <span id="badge-filtered-count" class="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-blue-400 font-bold">1328</span>
+        </button>
+        <button class="nav-tab px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition flex items-center space-x-2 text-slate-300 hover:text-white" data-target="tab-routes">
+          <i class="fa-solid fa-route"></i>
+          <span data-i18n="tabRoutes">రూట్ ప్లానర్</span>
+        </button>
+        <button class="nav-tab px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition flex items-center space-x-2 text-slate-300 hover:text-white" data-target="tab-analytics">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span data-i18n="tabAnalytics">విశ్లేషణ & భద్రత</span>
+        </button>
+        <button class="nav-tab px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition flex items-center space-x-2 text-slate-300 hover:text-white" data-target="tab-directory">
+          <i class="fa-solid fa-phone-volume"></i>
+          <span data-i18n="tabDirectory">పోలీస్ & BLO డైరెక్టరీ</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Filter Controls Toolbar -->
+  <div class="filter-bar bg-slate-900 border-b border-slate-800/80 px-4 py-3 shadow-inner">
+    <div class="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 text-xs">
+      
+      <!-- Search Input -->
+      <div class="col-span-2 sm:col-span-3 lg:col-span-2 relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
+        <input type="text" id="filter-search" 
+               placeholder="శోధించండి: స్కూల్ పేరు / BLO ఫోన్ / రూట్ / PS..." 
+               class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+        <button id="btn-clear-search" class="hidden absolute right-2.5 top-2 text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Mandal Filter -->
+      <div>
+        <select id="filter-mandal" class="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-blue-500 transition">
+          <option value="" data-i18n="allMandals">అన్ని మండలాలు (32)</option>
+        </select>
+      </div>
+
+      <!-- MPTC Filter -->
+      <div>
+        <select id="filter-mptc" class="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-blue-500 transition">
+          <option value="" data-i18n="allMptc">అన్ని MPTC సెగ్మెంట్లు</option>
+        </select>
+      </div>
+
+      <!-- Sensitivity Filter -->
+      <div>
+        <select id="filter-sensitivity" class="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-blue-500 transition">
+          <option value="" data-i18n="allSensitivity">అన్ని రకాల కేంద్రాలు</option>
+          <option value="NORMAL">సాధారణ (NORMAL)</option>
+          <option value="SENSITIVE">సెన్సిటివ్ (SENSITIVE)</option>
+          <option value="HYPER SENSITIVE">హైపర్ సెన్సిటివ్ (HYPER)</option>
+        </select>
+      </div>
+
+      <!-- Route Filter & Reset Button -->
+      <div class="flex space-x-1.5">
+        <select id="filter-route" class="flex-1 px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-blue-500 transition">
+          <option value="" data-i18n="allRoutes">అన్ని రూట్లు</option>
+        </select>
+
+        <button id="btn-reset-filters" class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition" title="Reset Filters">
+          <i class="fa-solid fa-arrow-rotate-left"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 relative overflow-hidden flex flex-col">
+    
+    <!-- TAB 1: INTERACTIVE MAP -->
+    <div id="tab-map" class="tab-pane flex-1 relative flex flex-col">
+      <!-- Floating Map Overlays & Controls -->
+      <div class="absolute top-4 left-4 z-20 flex flex-wrap gap-2 pointer-events-auto">
+        <!-- Tile Layer Toggle -->
+        <div class="glass-panel rounded-lg p-1 flex space-x-1 shadow-lg">
+          <button id="btn-layer-streets" class="px-2.5 py-1 text-xs rounded font-medium bg-blue-600 text-white">
+            <i class="fa-solid fa-map mr-1"></i> స్ట్రీట్ మ్యాప్
+          </button>
+          <button id="btn-layer-satellite" class="px-2.5 py-1 text-xs rounded font-medium text-slate-300 hover:text-white">
+            <i class="fa-solid fa-satellite mr-1"></i> శాటిలైట్
+          </button>
+        </div>
+
+        <!-- Route Polyline Drawer Switch -->
+        <div class="glass-panel rounded-lg px-2.5 py-1.5 flex items-center space-x-2 shadow-lg">
+          <label class="text-xs font-medium text-slate-200 cursor-pointer flex items-center space-x-1.5">
+            <input type="checkbox" id="toggle-route-line" checked class="rounded text-blue-600 focus:ring-0">
+            <span data-i18n="connectRoute">రూట్ లైన్ కనెక్ట్ చేయి</span>
+          </label>
+        </div>
+
+        <!-- Clustered / Direct Pins Toggle -->
+        <div class="glass-panel rounded-lg px-2.5 py-1.5 flex items-center space-x-2 shadow-lg">
+          <label class="text-xs font-medium text-slate-200 cursor-pointer flex items-center space-x-1.5">
+            <input type="checkbox" id="toggle-cluster" checked class="rounded text-blue-600 focus:ring-0">
+            <span data-i18n="clusterMarkers">క్లస్టరింగ్</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Map Legend (Bottom Left) -->
+      <div class="absolute bottom-6 left-4 z-20 glass-panel rounded-xl p-3 shadow-2xl text-xs space-y-1.5 hidden sm:block border border-slate-700/60 max-w-[220px]">
+        <div class="font-bold text-slate-200 pb-1 border-b border-slate-700/50 flex items-center justify-between">
+          <span data-i18n="legendTitle">కేంద్రాల గుర్తులు</span>
+          <i class="fa-solid fa-layer-group text-slate-400"></i>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+          <span class="text-slate-300" data-i18n="normal">సాధారణ (886)</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
+          <span class="text-slate-300" data-i18n="sensitive">సెన్సిటివ్ (247)</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-3.5 h-3.5 rounded-full bg-red-600 animate-pulse shadow-sm shadow-red-500/50"></span>
+          <span class="text-slate-300 font-semibold" data-i18n="hyperSensitive">హైపర్ సెన్సిటివ్ (186)</span>
+        </div>
+        <div class="flex items-center space-x-2 pt-1 border-t border-slate-700/40 text-[11px] text-blue-300">
+          <i class="fa-solid fa-location-dot text-blue-400"></i>
+          <span data-i18n="userLive">మీ లైవ్ లొకేషన్</span>
+        </div>
+      </div>
+
+      <!-- Leaflet Map Container -->
+      <div id="map" class="w-full h-full flex-1"></div>
+
+      <!-- Slide-over Drawer for Polling Station Details -->
+      <div id="station-drawer" class="fixed inset-y-0 right-0 max-w-full flex pl-10 z-50 transform translate-x-full transition-transform duration-300 ease-in-out pointer-events-none">
+        <div class="w-screen max-w-md pointer-events-auto bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl flex flex-col">
+          
+          <!-- Drawer Header -->
+          <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+            <div class="flex items-center space-x-2">
+              <span id="drawer-sensitivity-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold badge-normal">
+                NORMAL
+              </span>
+              <span id="drawer-code" class="text-xs text-slate-400 font-mono">Code: -</span>
+            </div>
+            <button id="btn-close-drawer" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+          </div>
+
+          <!-- Drawer Body -->
+          <div class="flex-1 overflow-y-auto p-5 space-y-4 text-xs" id="drawer-content">
+            <!-- Polling Station Name -->
+            <div>
+              <h3 id="drawer-psl-name" class="text-base font-bold text-white leading-snug"></h3>
+              <p id="drawer-psl-details" class="text-slate-400 mt-1"></p>
+            </div>
+
+            <!-- Key Location Card -->
+            <div class="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">మండలం (Mandal):</span>
+                <span id="drawer-mandal" class="font-semibold text-white"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">MPTC సెగ్మెంట్:</span>
+                <span id="drawer-mptc" class="font-semibold text-white"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">రూట్ నెంబర్:</span>
+                <span id="drawer-route" class="font-bold text-amber-400"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">పోలీస్ స్టేషన్:</span>
+                <span id="drawer-police" class="font-semibold text-white"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">పోలీస్ స్టేషన్ నుండి దూరం:</span>
+                <span id="drawer-distance" class="font-semibold text-blue-400"></span>
+              </div>
+            </div>
+
+            <!-- Voters & Security Force -->
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-3 rounded-xl bg-blue-950/30 border border-blue-800/40 text-center">
+                <div class="text-[11px] text-blue-300 font-medium">మొత్తం ఓటర్లు</div>
+                <div id="drawer-voters" class="text-xl font-extrabold text-blue-400 mt-0.5">0</div>
+              </div>
+              <div class="p-3 rounded-xl bg-indigo-950/30 border border-indigo-800/40 text-center">
+                <div class="text-[11px] text-indigo-300 font-medium">పోలీస్ ఫోర్స్</div>
+                <div id="drawer-forces" class="text-xs font-semibold text-indigo-200 mt-1">PC: 1, HG: 1</div>
+              </div>
+            </div>
+
+            <!-- Officers & Contacts Section -->
+            <div class="space-y-2">
+              <h4 class="font-semibold text-slate-300 flex items-center">
+                <i class="fa-solid fa-address-book mr-1.5 text-blue-400"></i> సంబంధిత అధికారులు & సంప్రదింపులు
+              </h4>
+
+              <!-- BLO Contact Card -->
+              <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
+                <div>
+                  <div class="text-slate-400 text-[11px]">బూత్ లెవల్ ఆఫీసర్ (BLO)</div>
+                  <div id="drawer-blo-phone" class="font-mono font-bold text-white text-sm">--</div>
+                </div>
+                <a id="drawer-blo-call" href="#" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center space-x-1 shadow transition">
+                  <i class="fa-solid fa-phone"></i>
+                  <span>కాల్</span>
+                </a>
+              </div>
+
+              <!-- Police Incharge Card -->
+              <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                <div class="text-slate-400 text-[11px] mb-1">ఇంచార్జ్ పోలీస్ అధికారులు (SI / CI)</div>
+                <div id="drawer-incharge-text" class="text-slate-200 text-xs whitespace-pre-line font-medium mb-2"></div>
+                <div class="flex space-x-2" id="drawer-incharge-actions">
+                  <!-- Generated dynamic call buttons -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Direct Navigation Buttons -->
+            <div class="pt-2 space-y-2">
+              <a id="drawer-gmaps-link" href="#" target="_blank" 
+                 class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold flex items-center justify-center space-x-2 shadow-lg shadow-blue-600/30 transition">
+                <i class="fa-solid fa-diamond-turn-right text-base"></i>
+                <span>గూగుల్ మ్యాప్స్‌లో డైరెక్షన్స్ పొందండి</span>
+              </a>
+
+              <button id="drawer-live-distance-btn" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-center flex items-center justify-center space-x-2 border border-slate-700 transition">
+                <i class="fa-solid fa-route text-amber-400"></i>
+                <span id="drawer-live-distance-text">లైవ్ లొకేషన్ నుండి దూరం లెక్కించు</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: STATIONS DIRECTORY (LIST / TABLE) -->
+    <div id="tab-stations" class="tab-pane hidden flex-1 flex flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full overflow-y-auto">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center">
+            <i class="fa-solid fa-list-check mr-2 text-blue-500"></i>
+            <span data-i18n="stationsDirectoryTitle">పోలింగ్ కేంద్రాల పూర్తి వివరాలు</span>
+          </h2>
+          <p class="text-xs text-slate-400" id="directory-count-text">1,328 పోలింగ్ కేంద్రాలు కనుగొనబడ్డాయి</p>
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs">
+          <!-- View Toggle: Card Grid vs Compact Table -->
+          <div class="bg-slate-900 p-1 rounded-lg border border-slate-800 flex space-x-1">
+            <button id="btn-view-cards" class="px-2.5 py-1 rounded bg-blue-600 text-white font-medium">
+              <i class="fa-solid fa-grip mr-1"></i> కార్డ్స్
+            </button>
+            <button id="btn-view-table" class="px-2.5 py-1 rounded text-slate-300 hover:text-white font-medium">
+              <i class="fa-solid fa-table mr-1"></i> టేబుల్
+            </button>
+          </div>
+
+          <!-- Sort Selector -->
+          <select id="sort-stations" class="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200">
+            <option value="id-asc">క్రమ సంఖ్య (S.No)</option>
+            <option value="voters-desc">ఓటర్ల సంఖ్య (ఎక్కువ నుండి తక్కువ)</option>
+            <option value="distance-asc">పోలీస్ స్టేషన్ దూరం (సమీప)</option>
+            <option value="name-asc">పాఠశాల పేరు (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Card Grid Container -->
+      <div id="stations-card-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+        <!-- Rendered by JavaScript -->
+      </div>
+
+      <!-- Table View Container -->
+      <div id="stations-table-container" class="hidden mt-4 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/60">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/80 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="p-3">S.No</th>
+              <th class="p-3">పోలింగ్ కేంద్రం & చిరునామా</th>
+              <th class="p-3">మండలం / MPTC</th>
+              <th class="p-3">రూట్</th>
+              <th class="p-3">ఓటర్లు</th>
+              <th class="p-3">సెన్సిటివిటీ</th>
+              <th class="p-3">BLO ఫోన్</th>
+              <th class="p-3">పోలీస్ ఫోర్స్</th>
+              <th class="p-3 text-right">చర్యలు</th>
+            </tr>
+          </thead>
+          <tbody id="stations-table-body" class="divide-y divide-slate-800/60 font-medium">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Controls -->
+      <div class="flex items-center justify-between pt-6 pb-8 border-t border-slate-800 mt-6 text-xs text-slate-400">
+        <div id="pagination-info">Showing 1 to 24 of 1,328</div>
+        <div class="flex space-x-1.5" id="pagination-buttons">
+          <!-- Buttons rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ROUTE PLANNER -->
+    <div id="tab-routes" class="tab-pane hidden flex-1 flex flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full overflow-y-auto">
+      <div class="pb-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center">
+            <i class="fa-solid fa-route mr-2 text-amber-500"></i>
+            <span data-i18n="routesPlannerTitle">ఎన్నికల రూట్ మ్యాప్ & బందోబస్తు ప్రణాళిక</span>
+          </h2>
+          <p class="text-xs text-slate-400" data-i18n="routesPlannerDesc">
+            ప్రతి మండలానికి సంబంధించిన రూట్లు, పోలీస్ పెట్రోలింగ్, పోలింగ్ కేంద్రాల వరుస క్రమం
+          </p>
+        </div>
+        <div class="text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+          మొత్తం రూట్లు: <span id="total-routes-count" class="font-bold text-amber-400">16+</span>
+        </div>
+      </div>
+
+      <div id="routes-container" class="space-y-4 mt-6">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- TAB 4: ANALYTICS & SECURITY DASHBOARD -->
+    <div id="tab-analytics" class="tab-pane hidden flex-1 flex flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full overflow-y-auto">
+      <div class="pb-4 border-b border-slate-800">
+        <h2 class="text-lg font-bold text-white flex items-center">
+          <i class="fa-solid fa-chart-pie mr-2 text-indigo-400"></i>
+          <span data-i18n="analyticsTitle">ఎన్నికల గణాంకాలు & భద్రతా విశ్లేషణ డాష్‌బోర్డ్</span>
+        </h2>
+        <p class="text-xs text-slate-400">సమగ్ర ఓటర్ల వివరాలు, సెన్సిటివిటీ వర్గీకరణ & పోలీస్ బలగాల మోహరింపు</p>
+      </div>
+
+      <!-- Metric Highlights Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6">
+        <div class="glass-card p-4 rounded-xl border border-blue-500/20">
+          <div class="flex items-center justify-between text-blue-400 text-xs font-medium">
+            <span>పోలింగ్ కేంద్రాలు</span>
+            <i class="fa-solid fa-person-booth text-base"></i>
+          </div>
+          <div class="text-2xl font-extrabold text-white mt-2" id="metric-stations">1,328</div>
+          <div class="text-[11px] text-slate-400 mt-1">32 మండలాల్లో విస్తరించి ఉన్నాయి</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-amber-500/20">
+          <div class="flex items-center justify-between text-amber-400 text-xs font-medium">
+            <span>మొత్తం రిజిస్టర్డ్ ఓటర్లు</span>
+            <i class="fa-solid fa-users text-base"></i>
+          </div>
+          <div class="text-2xl font-extrabold text-white mt-2" id="metric-voters">1,636,593</div>
+          <div class="text-[11px] text-slate-400 mt-1">సగటున కేంద్రానికి ~1,230 మంది</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-red-500/20">
+          <div class="flex items-center justify-between text-red-400 text-xs font-medium">
+            <span>హైపర్ సెన్సిటివ్ కేంద్రాలు</span>
+            <i class="fa-solid fa-triangle-exclamation text-base"></i>
+          </div>
+          <div class="text-2xl font-extrabold text-red-400 mt-2" id="metric-hyper">186</div>
+          <div class="text-[11px] text-slate-400 mt-1">ప్రత్యేక QRT & బలగాలు అవసరం</div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-indigo-500/20">
+          <div class="flex items-center justify-between text-indigo-400 text-xs font-medium">
+            <span>మొత్తం పోలీస్ బలగాలు</span>
+            <i class="fa-solid fa-shield-halved text-base"></i>
+          </div>
+          <div class="text-2xl font-extrabold text-indigo-400 mt-2" id="metric-forces">1,557</div>
+          <div class="text-[11px] text-slate-400 mt-1">12 SI, 263 ASI/HC, 886 PC, 396 HG</div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <!-- Chart 1: Sensitivity Breakdown -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+          <h3 class="text-sm font-bold text-white mb-3 flex items-center">
+            <i class="fa-solid fa-chart-donut mr-2 text-emerald-400"></i> సెన్సిటివిటీ కేటగిరీల వర్గీకరణ
+          </h3>
+          <div class="h-64 relative flex items-center justify-center">
+            <canvas id="chart-sensitivity"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Security Deployment by Rank -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+          <h3 class="text-sm font-bold text-white mb-3 flex items-center">
+            <i class="fa-solid fa-users-rays mr-2 text-blue-400"></i> పోలీస్ సిబ్బంది ర్యాంకుల వారీగా నియామకం
+          </h3>
+          <div class="h-64 relative flex items-center justify-center">
+            <canvas id="chart-forces"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 3: Top Mandals by Voter Count -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2">
+          <h3 class="text-sm font-bold text-white mb-3 flex items-center">
+            <i class="fa-solid fa-chart-column mr-2 text-amber-400"></i> మండలాల వారీగా ఓటర్ల సంఖ్య (Top Mandals)
+          </h3>
+          <div class="h-72 relative">
+            <canvas id="chart-mandals"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: EMERGENCY CONTACTS & DIRECTORY -->
+    <div id="tab-directory" class="tab-pane hidden flex-1 flex flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full overflow-y-auto">
+      <div class="pb-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center">
+            <i class="fa-solid fa-phone-volume mr-2 text-emerald-400"></i>
+            <span data-i18n="directoryTitle">ఎన్నికల అత్యవసర సంప్రదింపులు & పోలీస్ అధికారులు</span>
+          </h2>
+          <p class="text-xs text-slate-400">పోలీస్ స్టేషన్ అధికారులు, BLOలు & రూట్ ఇంచార్జ్‌ల ఫోన్ నెంబర్లు</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <input type="text" id="directory-search" placeholder="పేరు లేదా ఫోన్ నెంబర్ శోధించండి..." 
+                 class="px-3 py-1.5 text-xs bg-slate-900 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <!-- Quick Police Incharges Section -->
+      <div class="mt-6">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center">
+          <i class="fa-solid fa-shield-cat mr-2 text-blue-400"></i> సర్కిల్ & సబ్-ఇన్‌స్పెక్టర్ల హెల్ప్‌లైన్
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="police-officers-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- BLOs Directory Section -->
+      <div class="mt-8">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center">
+          <i class="fa-solid fa-address-book mr-2 text-emerald-400"></i> బూత్ లెవల్ ఆఫీసర్స్ (BLO) డైరెక్టరీ
+        </h3>
+        <div id="blo-directory-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="glass-panel border-t border-slate-800 py-3 text-center text-xs text-slate-400 no-print">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-shield-halved text-blue-500"></i>
+        <span>ఆంధ్రప్రదేశ్ సాధారణ ఎన్నికలు - జిల్లా పోలీస్ యంత్రాంగం & ఎన్నికల సెల్</span>
+      </div>
+      <div>
+        <span>Designed for GitHub Pages & Local Field Operations</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Embedded Data fallback (data.js defines window.ELECTION_DATA) -->
+  <script src="data.js"></script>
+
+  <!-- Main Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
