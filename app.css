@@ -1,20 +1,9 @@
-/* AP Election GeoPortal - Stylesheet */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Mandali&family=Noto+Sans+Telugu:wght@400;600;700&display=swap');
-
-:root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --hyper-sensitive: #dc2626;
-  --sensitive: #d97706;
-  --normal: #16a34a;
-}
+/* Election Police Administration Dashboard - Stylesheet */
 
 body {
-  font-family: 'Inter', 'Noto Sans Telugu', system-ui, -apple-system, sans-serif;
-  background-color: #0f172a;
-  color: #f1f5f9;
-  min-height: 100vh;
-  overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #f3f4f6;
+  color: #1f2937;
 }
 
 /* Custom Scrollbars */
@@ -23,167 +12,60 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #94a3b8;
 }
 
-/* Glassmorphism elements */
-.glass-panel {
-  background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.glass-card {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-}
-
-/* Map specific styles */
-#tab-map {
+/* Map Containers */
+#map, #ps-all-map {
   width: 100%;
-  height: calc(100vh - 125px);
+  height: calc(100vh - 80px);
   min-height: 550px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-#map {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 550px !important;
+  border-radius: 0.5rem;
   z-index: 10;
-  border-radius: 0;
-  background-color: #1e293b;
 }
 
-/* Marker clusters custom styling */
-.marker-cluster-small {
-  background-color: rgba(34, 197, 94, 0.6);
-}
-.marker-cluster-small div {
-  background-color: rgba(22, 163, 74, 0.9);
-  color: #fff;
-  font-weight: 700;
-}
-.marker-cluster-medium {
-  background-color: rgba(245, 158, 11, 0.6);
-}
-.marker-cluster-medium div {
-  background-color: rgba(217, 119, 6, 0.9);
-  color: #fff;
-  font-weight: 700;
-}
-.marker-cluster-large {
-  background-color: rgba(239, 68, 68, 0.6);
-}
-.marker-cluster-large div {
-  background-color: rgba(220, 38, 38, 0.9);
-  color: #fff;
-  font-weight: 700;
-}
-
-/* Custom Marker Pins */
-.custom-pin {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.custom-pin:hover {
-  transform: rotate(-45deg) scale(1.15);
-}
-
-.custom-pin-inner {
-  transform: rotate(45deg);
-  color: white;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pin-normal {
-  background: linear-gradient(135deg, #22c55e, #15803d);
+/* Custom Marker Pin Badges matching nex-gen categorization */
+.pin-hyper {
+  background-color: #ef4444;
+  color: #ffffff;
   border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.pin-critical {
+  background-color: #991b1b;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
 .pin-sensitive {
-  background: linear-gradient(135deg, #f59e0b, #b45309);
+  background-color: #f59e0b;
+  color: #ffffff;
   border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
-.pin-hyper {
-  background: linear-gradient(135deg, #ef4444, #991b1b);
+.pin-normal {
+  background-color: #10b981;
+  color: #ffffff;
   border: 2px solid #ffffff;
-  animation: pulse-pin 2s infinite;
-}
-
-@keyframes pulse-pin {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
-  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-/* User Live Location Beacon */
-.user-beacon {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  background-color: #3b82f6;
-  border: 3px solid #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
-}
-.user-beacon::after {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: -8px;
-  right: -8px;
-  bottom: -8px;
-  border-radius: 50%;
-  border: 2px solid #60a5fa;
-  animation: radar-wave 1.8s infinite cubic-bezier(0, 0.2, 0.8, 1);
-}
-
-@keyframes radar-wave {
-  0% { transform: scale(0.6); opacity: 1; }
-  100% { transform: scale(2.4); opacity: 0; }
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* Leaflet Popup Styling */
 .leaflet-popup-content-wrapper {
-  background: #1e293b !important;
-  color: #f8fafc !important;
-  border-radius: 0.75rem !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
   padding: 0 !important;
-  overflow: hidden;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
 }
 
 .leaflet-popup-content {
@@ -191,58 +73,19 @@ body {
   line-height: 1.4 !important;
 }
 
-.leaflet-popup-tip {
-  background: #1e293b !important;
+/* Marker Cluster */
+.marker-cluster-small div {
+  background-color: rgba(16, 185, 129, 0.9);
+  color: #fff;
+  font-weight: 700;
 }
-
-.leaflet-container a.leaflet-popup-close-button {
-  color: #94a3b8 !important;
-  padding: 8px !important;
+.marker-cluster-medium div {
+  background-color: rgba(245, 158, 11, 0.9);
+  color: #fff;
+  font-weight: 700;
 }
-.leaflet-container a.leaflet-popup-close-button:hover {
-  color: #ffffff !important;
-}
-
-/* Sensitivity Badges */
-.badge-hyper {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-.badge-sensitive {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.4);
-}
-.badge-normal {
-  background: rgba(34, 197, 94, 0.15);
-  color: #86efac;
-  border: 1px solid rgba(34, 197, 94, 0.4);
-}
-
-/* Tab Active State */
-.nav-tab.active {
-  background: #3b82f6;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
-}
-
-/* Print Styles */
-@media print {
-  body {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-  }
-  .no-print, header, .filter-bar, .nav-tabs, #map, .action-buttons {
-    display: none !important;
-  }
-  .print-only {
-    display: block !important;
-  }
-  .glass-card, .glass-panel {
-    background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    box-shadow: none !important;
-    color: #0f172a !important;
-  }
+.marker-cluster-large div {
+  background-color: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  font-weight: 700;
 }
