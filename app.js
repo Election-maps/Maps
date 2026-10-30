@@ -108,8 +108,11 @@ const i18n = {
 // Map Instance & Layers
 let map = null;
 let markerClusterGroup = null;
-let streetLayer = null;
-let satelliteLayer = null;
+let googleHybridLayer = null;
+let googleRoadsLayer = null;
+let osmLayer = null;
+let esriSatelliteLayer = null;
+let activeTileLayer = null;
 let userMarker = null;
 
 // Initialization
@@ -123,24 +126,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Initialize Leaflet Map
+ * Initialize Leaflet Map with Realtime Satellite & Road Layers
  */
 function initMap() {
-  streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    maxZoom: 19
+  // 1. Google Satellite Hybrid (Realtime Satellite + Roads + Village/Town Labels)
+  googleHybridLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'],
+    maxZoom: 20,
+    attribution: '&copy; Google Satellite & Roads'
   });
 
-  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-    maxZoom: 19
+  // 2. Google Maps Standard Road network
+  googleRoadsLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'],
+    maxZoom: 20,
+    attribution: '&copy; Google Maps'
   });
+
+  // 3. Official OpenStreetMap (100% Free Open GIS)
+  osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  });
+
+  // 4. Esri High-Resolution World Imagery
+  esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: '&copy; Esri World Imagery'
+  });
+
+  // Check saved custom provider from localStorage
+  const customTileUrl = localStorage.getItem('custom_map_tile_url');
+  let defaultLayer = googleHybridLayer;
+
+  if (customTileUrl) {
+    try {
+      defaultLayer = L.tileLayer(customTileUrl, { maxZoom: 20 });
+    } catch(e) {
+      defaultLayer = googleHybridLayer;
+    }
+  }
+
+  activeTileLayer = defaultLayer;
 
   // Default center around Srikakulam district AP
   map = L.map('map', {
     center: [18.45, 84.05],
     zoom: 10,
-    layers: [streetLayer]
+    layers: [activeTileLayer]
   });
 
   markerClusterGroup = L.markerClusterGroup({
@@ -150,7 +183,51 @@ function initMap() {
     showCoverageOnHover: false
   });
   map.addLayer(markerClusterGroup);
+
+  // Auto-resize triggers to guarantee immediate tile rendering
+  setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+  setTimeout(() => { if (map) map.invalidateSize(); }, 400);
+  setTimeout(() => { if (map) map.invalidateSize(); }, 900);
+  window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
 }
+
+/**
+ * Switch Realtime Map Tile Layer
+ */
+window.switchMapLayer = function(layerType) {
+  if (!map) return;
+  map.removeLayer(activeTileLayer);
+
+  const btnHybrid = document.getElementById('btn-layer-hybrid');
+  const btnRoads = document.getElementById('btn-layer-roads');
+  const btnOsm = document.getElementById('btn-layer-osm');
+  const btnEsri = document.getElementById('btn-layer-esri');
+
+  const inactiveClass = 'px-2.5 py-1 text-xs rounded-lg font-medium text-slate-300 hover:text-white transition';
+  const activeClass = 'px-2.5 py-1 text-xs rounded-lg font-bold bg-blue-600 text-white shadow transition';
+
+  if (btnHybrid) btnHybrid.className = inactiveClass;
+  if (btnRoads) btnRoads.className = inactiveClass;
+  if (btnOsm) btnOsm.className = inactiveClass;
+  if (btnEsri) btnEsri.className = inactiveClass;
+
+  if (layerType === 'google-hybrid') {
+    activeTileLayer = googleHybridLayer;
+    if (btnHybrid) btnHybrid.className = activeClass;
+  } else if (layerType === 'google-roads') {
+    activeTileLayer = googleRoadsLayer;
+    if (btnRoads) btnRoads.className = activeClass;
+  } else if (layerType === 'osm') {
+    activeTileLayer = osmLayer;
+    if (btnOsm) btnOsm.className = activeClass;
+  } else if (layerType === 'esri') {
+    activeTileLayer = esriSatelliteLayer;
+    if (btnEsri) btnEsri.className = activeClass;
+  }
+
+  map.addLayer(activeTileLayer);
+  setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+};
 
 /**
  * Load and normalize election data
@@ -260,20 +337,50 @@ function setupEventListeners() {
     resetFilters();
   });
 
-  // Map Layer Toggle
-  document.getElementById('btn-layer-streets').addEventListener('click', () => {
-    map.removeLayer(satelliteLayer);
-    map.addLayer(streetLayer);
-    document.getElementById('btn-layer-streets').className = 'px-2.5 py-1 text-xs rounded font-medium bg-blue-600 text-white';
-    document.getElementById('btn-layer-satellite').className = 'px-2.5 py-1 text-xs rounded font-medium text-slate-300 hover:text-white';
-  });
+  // API Settings Modal
+  const apiModal = document.getElementById('modal-api-settings');
+  const btnOpenApiModal = document.getElementById('btn-open-api-modal');
+  const btnCloseApiModal = document.getElementById('btn-close-api-modal');
+  const btnSaveCustomTile = document.getElementById('btn-save-custom-tile');
+  const inputCustomTile = document.getElementById('input-custom-tile-url');
+  const customStatus = document.getElementById('custom-tile-status');
 
-  document.getElementById('btn-layer-satellite').addEventListener('click', () => {
-    map.removeLayer(streetLayer);
-    map.addLayer(satelliteLayer);
-    document.getElementById('btn-layer-satellite').className = 'px-2.5 py-1 text-xs rounded font-medium bg-blue-600 text-white';
-    document.getElementById('btn-layer-streets').className = 'px-2.5 py-1 text-xs rounded font-medium text-slate-300 hover:text-white';
-  });
+  if (btnOpenApiModal && apiModal) {
+    btnOpenApiModal.addEventListener('click', () => {
+      apiModal.classList.remove('hidden');
+      if (inputCustomTile) {
+        inputCustomTile.value = localStorage.getItem('custom_map_tile_url') || '';
+      }
+    });
+  }
+
+  if (btnCloseApiModal && apiModal) {
+    btnCloseApiModal.addEventListener('click', () => {
+      apiModal.classList.add('hidden');
+    });
+  }
+
+  if (btnSaveCustomTile && inputCustomTile) {
+    btnSaveCustomTile.addEventListener('click', () => {
+      const url = inputCustomTile.value.trim();
+      if (url) {
+        localStorage.setItem('custom_map_tile_url', url);
+        if (customStatus) {
+          customStatus.classList.remove('hidden');
+          setTimeout(() => customStatus.classList.add('hidden'), 3000);
+        }
+        // Apply immediately
+        if (map && activeTileLayer) {
+          map.removeLayer(activeTileLayer);
+          activeTileLayer = L.tileLayer(url, { maxZoom: 20 });
+          map.addLayer(activeTileLayer);
+        }
+      } else {
+        localStorage.removeItem('custom_map_tile_url');
+        switchMapLayer('google-hybrid');
+      }
+    });
+  }
 
   // Clustering Toggle
   document.getElementById('toggle-cluster').addEventListener('change', (e) => {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AP Election GeoPortal | Polling Stations & Route Maps</title>
+  <title>AP Election GeoPortal | Polling Stations & Realtime Route Maps</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -66,7 +66,7 @@
               </span>
             </div>
             <p class="text-xs text-slate-400 hidden sm:block" data-i18n="appSubtitle">
-              ఎన్నికల పోలింగ్ కేంద్రాలు, రూట్ మ్యాప్స్ & పోలీస్ బందోబస్తు నిర్వహణ
+              ఎన్నికల పోలింగ్ కేంద్రాలు, రియల్‌టైమ్ రూట్ మ్యాప్స్ & భద్రతా నిర్వహణ
             </p>
           </div>
         </div>
@@ -95,6 +95,12 @@
           <button id="btn-live-location" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-1.5 shadow-md shadow-blue-600/30 transition" title="Find My Live Location">
             <i class="fa-solid fa-location-crosshairs text-sm"></i>
             <span class="hidden md:inline" data-i18n="myLocation">నా లొకేషన్</span>
+          </button>
+
+          <!-- Free API & Settings Modal Trigger -->
+          <button id="btn-open-api-modal" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-950/60 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/50 transition flex items-center space-x-1" title="Realtime Map API Settings">
+            <i class="fa-solid fa-satellite-dish text-indigo-400"></i>
+            <span class="hidden lg:inline">Map API</span>
           </button>
 
           <!-- Language Switcher -->
@@ -200,24 +206,30 @@
   </div>
 
   <!-- Main Content Area -->
-  <main class="flex-1 relative overflow-hidden flex flex-col">
+  <main class="flex-1 relative flex flex-col">
     
     <!-- TAB 1: INTERACTIVE MAP -->
     <div id="tab-map" class="tab-pane flex-1 relative flex flex-col">
-      <!-- Floating Map Overlays & Controls -->
+      <!-- Floating Map Overlays & Realtime Tile Controls -->
       <div class="absolute top-4 left-4 z-20 flex flex-wrap gap-2 pointer-events-auto">
-        <!-- Tile Layer Toggle -->
-        <div class="glass-panel rounded-lg p-1 flex space-x-1 shadow-lg">
-          <button id="btn-layer-streets" class="px-2.5 py-1 text-xs rounded font-medium bg-blue-600 text-white">
-            <i class="fa-solid fa-map mr-1"></i> స్ట్రీట్ మ్యాప్
+        <!-- Live Realtime Tile Layer Switcher -->
+        <div class="glass-panel rounded-xl p-1 flex space-x-1 shadow-2xl border border-slate-700/80">
+          <button id="btn-layer-hybrid" onclick="switchMapLayer('google-hybrid')" class="px-2.5 py-1 text-xs rounded-lg font-bold bg-blue-600 text-white shadow transition">
+            <i class="fa-solid fa-satellite mr-1"></i> గూగుల్ శాటిలైట్
           </button>
-          <button id="btn-layer-satellite" class="px-2.5 py-1 text-xs rounded font-medium text-slate-300 hover:text-white">
-            <i class="fa-solid fa-satellite mr-1"></i> శాటిలైట్
+          <button id="btn-layer-roads" onclick="switchMapLayer('google-roads')" class="px-2.5 py-1 text-xs rounded-lg font-medium text-slate-300 hover:text-white transition">
+            <i class="fa-solid fa-map mr-1"></i> గూగుల్ రోడ్స్
+          </button>
+          <button id="btn-layer-osm" onclick="switchMapLayer('osm')" class="px-2.5 py-1 text-xs rounded-lg font-medium text-slate-300 hover:text-white transition">
+            <i class="fa-solid fa-globe mr-1"></i> OSM (ఓపెన్)
+          </button>
+          <button id="btn-layer-esri" onclick="switchMapLayer('esri')" class="px-2.5 py-1 text-xs rounded-lg font-medium text-slate-300 hover:text-white transition">
+            <i class="fa-solid fa-mountain-sun mr-1"></i> Esri శాటిలైట్
           </button>
         </div>
 
         <!-- Route Polyline Drawer Switch -->
-        <div class="glass-panel rounded-lg px-2.5 py-1.5 flex items-center space-x-2 shadow-lg">
+        <div class="glass-panel rounded-xl px-3 py-1.5 flex items-center space-x-2 shadow-2xl border border-slate-700/80">
           <label class="text-xs font-medium text-slate-200 cursor-pointer flex items-center space-x-1.5">
             <input type="checkbox" id="toggle-route-line" checked class="rounded text-blue-600 focus:ring-0">
             <span data-i18n="connectRoute">రూట్ లైన్ కనెక్ట్ చేయి</span>
@@ -225,7 +237,7 @@
         </div>
 
         <!-- Clustered / Direct Pins Toggle -->
-        <div class="glass-panel rounded-lg px-2.5 py-1.5 flex items-center space-x-2 shadow-lg">
+        <div class="glass-panel rounded-xl px-3 py-1.5 flex items-center space-x-2 shadow-2xl border border-slate-700/80">
           <label class="text-xs font-medium text-slate-200 cursor-pointer flex items-center space-x-1.5">
             <input type="checkbox" id="toggle-cluster" checked class="rounded text-blue-600 focus:ring-0">
             <span data-i18n="clusterMarkers">క్లస్టరింగ్</span>
@@ -258,7 +270,7 @@
       </div>
 
       <!-- Leaflet Map Container -->
-      <div id="map" class="w-full h-full flex-1"></div>
+      <div id="map" class="w-full flex-1"></div>
 
       <!-- Slide-over Drawer for Polling Station Details -->
       <div id="station-drawer" class="fixed inset-y-0 right-0 max-w-full flex pl-10 z-50 transform translate-x-full transition-transform duration-300 ease-in-out pointer-events-none">
@@ -580,6 +592,86 @@
 
   </main>
 
+  <!-- Modal: Free Realtime Map API & Settings -->
+  <div id="modal-api-settings" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md hidden">
+    <div class="glass-panel w-full max-w-xl rounded-2xl p-6 border border-slate-700 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-satellite-dish text-indigo-400 text-lg"></i>
+          <h3 class="text-base font-bold text-white">రియల్‌టైమ్ మ్యాప్ API సెట్టింగ్స్</h3>
+        </div>
+        <button id="btn-close-api-modal" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-4 text-xs text-slate-300">
+        <div class="p-3 rounded-xl bg-blue-950/40 border border-blue-800/40 text-blue-200">
+          <strong class="text-white flex items-center"><i class="fa-solid fa-circle-check text-emerald-400 mr-1.5"></i> ఇన్-బిల్ట్ గూగుల్ లైవ్ శాటిలైట్ సేవలు యాక్టివ్‌గా ఉన్నాయి!</strong>
+          <p class="mt-1 text-[11px] text-blue-300">
+            మీ వెబ్‌సైట్‌లో ఎటువంటి API Key లేకుండానే గూగుల్ మ్యాప్స్ లైవ్ శాటిలైట్, రోడ్లు మరియు ఓపెన్‌స్ట్రీట్‌మ్యాప్ టైల్స్ ఉచితంగా పనిచేస్తాయి.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-white mb-2 text-xs flex items-center">
+            <i class="fa-solid fa-key text-amber-400 mr-1.5"></i> ఉచిత Map API సర్వీసెస్ (Free Providers):
+          </h4>
+          <div class="space-y-2">
+            <!-- Google Maps Platform -->
+            <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">Google Maps Platform</span>
+                <span class="text-[10px] text-emerald-400 ml-1.5">నెలకు $200 ఫ్రీ క్రెడిట్ (~28,000 లోడ్స్)</span>
+                <div class="text-[10px] text-slate-400">లైవ్ స్ట్రీట్ వ్యూ, ట్రాఫిక్ & పూర్తి నావిగేషన్ API</div>
+              </div>
+              <a href="https://mapsplatform.google.com/" target="_blank" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[11px] font-semibold">
+                Free Key ➔
+              </a>
+            </div>
+
+            <!-- Mapbox -->
+            <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">Mapbox GL</span>
+                <span class="text-[10px] text-emerald-400 ml-1.5">నెలకు 50,000 మ్యాప్ లోడ్స్ 100% ఉచితం</span>
+                <div class="text-[10px] text-slate-400">అత్యంత వేగవంతమైన వెక్టర్ 3D మ్యాప్స్</div>
+              </div>
+              <a href="https://www.mapbox.com/" target="_blank" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[11px] font-semibold">
+                Free Key ➔
+              </a>
+            </div>
+
+            <!-- MapTiler -->
+            <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">MapTiler Cloud</span>
+                <span class="text-[10px] text-emerald-400 ml-1.5">నెలకు 1,00,000 రిక్వెస్ట్‌లు ఉచితం</span>
+                <div class="text-[10px] text-slate-400">గ్లోబల్ శాటిలైట్ & హై-స్పీడ్ టైల్స్</div>
+              </div>
+              <a href="https://www.maptiler.com/cloud/" target="_blank" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-[11px] font-semibold">
+                Free Key ➔
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Tile / Key input -->
+        <div class="pt-2 border-t border-slate-800">
+          <label class="block font-medium text-slate-300 mb-1 text-xs">మీ సొంత కస్టమ్ మ్యాప్ టైల్ URL లేదా Mapbox Token:</label>
+          <div class="flex space-x-2">
+            <input type="text" id="input-custom-tile-url" placeholder="ఉదా: https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=YOUR_KEY" 
+                   class="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-white text-xs placeholder-slate-600 focus:outline-none focus:border-blue-500">
+            <button id="btn-save-custom-tile" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs">
+              సేవ్ చేయి
+            </button>
+          </div>
+          <p id="custom-tile-status" class="text-[10px] text-emerald-400 mt-1 hidden">కస్టమ్ మ్యాప్ సెట్టింగ్ సేవ్ అయ్యింది!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="glass-panel border-t border-slate-800 py-3 text-center text-xs text-slate-400 no-print">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -588,7 +680,7 @@
         <span>ఆంధ్రప్రదేశ్ సాధారణ ఎన్నికలు - జిల్లా పోలీస్ యంత్రాంగం & ఎన్నికల సెల్</span>
       </div>
       <div>
-        <span>Designed for GitHub Pages & Local Field Operations</span>
+        <span>Realtime GIS Mapping & Navigation Engine</span>
       </div>
     </div>
   </footer>
