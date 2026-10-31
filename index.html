@@ -805,90 +805,122 @@
                 <input type="hidden" id="form-id">
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Police Station (PS Name) *</label>
-                    <input type="text" id="form-psname" required class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Name of the Mandal / ZPTC Segment *</label>
+                    <input type="text" id="form-mandal" required class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Mandal / ZPTC *</label>
-                    <input type="text" id="form-mandal" required class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Name of the MPTC Segment</label>
+                    <input type="text" id="form-mptc" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">MPTC Segment</label>
-                    <input type="text" id="form-mptc" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Route_no *</label>
+                    <input type="text" id="form-route" required placeholder="e.g. I, II, III, 1, 2" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 font-bold text-blue-900">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Route No *</label>
-                    <input type="text" id="form-route" required placeholder="e.g. I, II, III, 1, 2" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Route Inchage</label>
+                    <input type="text" id="form-route-incharge" placeholder="Officer Name, Phone" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">PS Code / No</label>
-                    <input type="text" id="form-code" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Striking force Incharge</label>
+                    <input type="text" id="form-striking-incharge" placeholder="Officer Name, Phone" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Sensitivity Category *</label>
-                    <select id="form-categorization" required class="w-full border rounded px-2.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-blue-500 bg-white">
-                        <option value="NORMAL">NORMAL</option>
-                        <option value="SENSITIVE">SENSITIVE</option>
-                        <option value="CRITICAL">CRITICAL</option>
-                        <option value="HYPER SENSITIVE">HYPER SENSITIVE</option>
-                    </select>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Special Stricking force Incharge</label>
+                    <input type="text" id="form-special-striking" placeholder="Officer Name, Phone" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">QRT</label>
+                    <input type="text" id="form-qrt" placeholder="Officer Name, Phone" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Name of the PS *</label>
+                    <input type="text" id="form-psname" required class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 font-bold">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Code</label>
+                    <input type="text" id="form-code" placeholder="e.g. 101" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 font-mono">
                 </div>
 
                 <div class="sm:col-span-2 md:col-span-3">
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Polling Station Location / Building Name *</label>
-                    <input type="text" id="form-location" required class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Name of the Polling Station Location (PSL) *</label>
+                    <input type="text" id="form-location" required class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 font-semibold">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">No. of Electors / Voters</label>
-                    <input type="number" id="form-voters" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">No. of Poliing Stations</label>
+                    <input type="text" id="form-ps-count" placeholder="e.g. 1 or 2" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Distance from PS (KMs)</label>
-                    <input type="text" id="form-distance" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">No. of Voters</label>
+                    <input type="number" id="form-voters" placeholder="0" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 font-bold text-purple-700">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">BLO Contact Number(s)</label>
-                    <input type="text" id="form-blo" placeholder="Phone numbers" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Name & Contact No. of BLO</label>
+                    <input type="text" id="form-blo" placeholder="Name, Phone" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Route Staff Details (SI / CI)</label>
-                    <input type="text" id="form-routestaff" placeholder="SI Name, Phone..." class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Distance from Police Station in KMs</label>
+                    <input type="text" id="form-distance" placeholder="e.g. 12" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Striking Force (ASI / HC)</label>
-                    <input type="text" id="form-asi" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Sensitivity *</label>
+                    <select id="form-categorization" required class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-blue-500 bg-white">
+                        <option value="NORMAL">NORMAL (సాధారణ)</option>
+                        <option value="SENSITIVE">SENSITIVE (సున్నితమైన)</option>
+                        <option value="CRITICAL">CRITICAL (సమస్యాత్మక)</option>
+                        <option value="HYPER SENSITIVE">HYPER SENSITIVE (అతి సమస్యాత్మక)</option>
+                    </select>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Staff Details (PC / HG)</label>
-                    <div class="flex gap-2">
-                        <input type="number" id="form-pc" placeholder="PC count" class="w-1/2 border rounded px-2 py-1.5 text-xs">
-                        <input type="number" id="form-hg" placeholder="HG count" class="w-1/2 border rounded px-2 py-1.5 text-xs">
-                    </div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">SI</label>
+                    <input type="text" id="form-si" placeholder="SI count/name" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">ASI/HC</label>
+                    <input type="text" id="form-asi" placeholder="ASI/HC count/details" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">PC</label>
+                    <input type="text" id="form-pc" placeholder="PC count" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">HG</label>
+                    <input type="text" id="form-hg" placeholder="HG count" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Others</label>
+                    <input type="text" id="form-others" placeholder="Others staff" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
                 </div>
 
                 <div>
                     <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Latitude</label>
-                    <input type="text" id="form-lat" placeholder="e.g. 18.2982" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <input type="text" id="form-lat" placeholder="e.g. 18.2982" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 font-mono">
                 </div>
 
                 <div>
                     <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Longitude</label>
-                    <input type="text" id="form-lng" placeholder="e.g. 83.8966" class="w-full border rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500">
+                    <input type="text" id="form-lng" placeholder="e.g. 83.8966" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 font-mono">
                 </div>
 
                 <div class="flex items-end">
-                    <button type="button" onclick="pickCoordinatesOnMap()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-1.5 rounded text-xs border border-slate-300 flex items-center justify-center gap-1">
+                    <button type="button" onclick="pickCoordinatesOnMap()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-1.5 rounded text-xs border border-slate-300 flex items-center justify-center gap-1 transition">
                         <i class="fa-solid fa-map-pin text-rose-600"></i> Map Coordinates Picker
                     </button>
                 </div>
@@ -3393,20 +3425,26 @@
 
             document.getElementById('modal-title').innerHTML = '<i class="fa-solid fa-pen-to-square text-blue-600"></i> Edit Polling Station';
             document.getElementById('form-id').value = s.id;
-            document.getElementById('form-psname').value = s.psname || '';
             document.getElementById('form-mandal').value = s.mandal_zptc_segment || '';
             document.getElementById('form-mptc').value = s.mptc_segment || '';
             document.getElementById('form-route').value = s.route_no || '';
+            document.getElementById('form-route-incharge').value = s.route_incharge || s.route_staff || '';
+            document.getElementById('form-striking-incharge').value = s.striking_force_incharge || '';
+            document.getElementById('form-special-striking').value = s.special_striking_force_incharge || '';
+            document.getElementById('form-qrt').value = s.qrt || '';
+            document.getElementById('form-psname').value = s.psname || '';
             document.getElementById('form-code').value = s.code || '';
-            document.getElementById('form-categorization').value = (s.categorization || 'NORMAL').trim().toUpperCase();
             document.getElementById('form-location').value = s.polling_station_location || '';
+            document.getElementById('form-ps-count').value = s.no_of_polling_stations || '';
             document.getElementById('form-voters').value = s.no_of_voters || '';
-            document.getElementById('form-distance').value = s.distance_from_ps_kms || '';
             document.getElementById('form-blo').value = s.blo_contact_no || '';
-            document.getElementById('form-routestaff').value = s.route_staff || '';
+            document.getElementById('form-distance').value = s.distance_from_ps_kms || '';
+            document.getElementById('form-categorization').value = (s.categorization || 'NORMAL').trim().toUpperCase();
+            document.getElementById('form-si').value = s.si || '';
             document.getElementById('form-asi').value = s.asi_hc || '';
             document.getElementById('form-pc').value = s.pc || '';
             document.getElementById('form-hg').value = s.hg || '';
+            document.getElementById('form-others').value = s.others || '';
             document.getElementById('form-lat').value = s.latitude || '';
             document.getElementById('form-lng').value = s.longitude || '';
 
@@ -3422,23 +3460,32 @@
 
             const idVal = document.getElementById('form-id').value;
             const isEdit = idVal !== '';
+            const orig = isEdit ? (allStations.find(s => s.id === parseInt(idVal, 10)) || {}) : {};
 
             const stationData = {
-                id: isEdit ? parseInt(idVal, 10) : (Date.now()),
-                psname: document.getElementById('form-psname').value.trim(),
+                ...orig,
+                id: isEdit ? parseInt(idVal, 10) : Date.now(),
                 mandal_zptc_segment: document.getElementById('form-mandal').value.trim(),
                 mptc_segment: document.getElementById('form-mptc').value.trim(),
                 route_no: document.getElementById('form-route').value.trim(),
+                route_incharge: document.getElementById('form-route-incharge').value.trim(),
+                route_staff: document.getElementById('form-route-incharge').value.trim(),
+                striking_force_incharge: document.getElementById('form-striking-incharge').value.trim(),
+                special_striking_force_incharge: document.getElementById('form-special-striking').value.trim(),
+                qrt: document.getElementById('form-qrt').value.trim(),
+                psname: document.getElementById('form-psname').value.trim(),
                 code: document.getElementById('form-code').value.trim(),
-                categorization: document.getElementById('form-categorization').value.trim().toUpperCase(),
                 polling_station_location: document.getElementById('form-location').value.trim(),
+                no_of_polling_stations: document.getElementById('form-ps-count').value.trim(),
                 no_of_voters: parseInt(document.getElementById('form-voters').value, 10) || 0,
-                distance_from_ps_kms: document.getElementById('form-distance').value.trim(),
                 blo_contact_no: document.getElementById('form-blo').value.trim(),
-                route_staff: document.getElementById('form-routestaff').value.trim(),
+                distance_from_ps_kms: document.getElementById('form-distance').value.trim(),
+                categorization: document.getElementById('form-categorization').value.trim().toUpperCase(),
+                si: document.getElementById('form-si').value.trim(),
                 asi_hc: document.getElementById('form-asi').value.trim(),
-                pc: parseInt(document.getElementById('form-pc').value, 10) || 0,
-                hg: parseInt(document.getElementById('form-hg').value, 10) || 0,
+                pc: document.getElementById('form-pc').value.trim(),
+                hg: document.getElementById('form-hg').value.trim(),
+                others: document.getElementById('form-others').value.trim(),
                 latitude: document.getElementById('form-lat').value.trim(),
                 longitude: document.getElementById('form-lng').value.trim()
             };
