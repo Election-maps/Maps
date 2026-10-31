@@ -1724,6 +1724,119 @@
             });
         }
 
+        // Field keys definition for Polling Station Popup customization
+        var POPUP_FIELD_KEYS = [
+            { key: 'mandal_zptc', label: 'Name of the Mandal / ZPTC Segment' },
+            { key: 'mptc', label: 'Name of the MPTC Segment' },
+            { key: 'route_no', label: 'Route_no' },
+            { key: 'route_incharge', label: 'Route Inchage' },
+            { key: 'striking_incharge', label: 'Striking force Incharge' },
+            { key: 'special_striking', label: 'Special Stricking force Incharge' },
+            { key: 'qrt', label: 'QRT' },
+            { key: 'psname', label: 'Name of the PS' },
+            { key: 'code', label: 'Code' },
+            { key: 'location', label: 'Name of the Polling Station Location (PSL)' },
+            { key: 'ps_count', label: 'No. of Poliing Stations' },
+            { key: 'voters', label: 'No. of Voters' },
+            { key: 'blo', label: 'Name & Contact No. of BLO' },
+            { key: 'distance', label: 'Distance from Police Station in KMs' },
+            { key: 'sensitivity', label: 'Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE)' },
+            { key: 'si', label: 'SI' },
+            { key: 'asi_hc', label: 'ASI/HC' },
+            { key: 'pc', label: 'PC' },
+            { key: 'hg', label: 'HG' },
+            { key: 'others', label: 'Others' },
+            { key: 'lat', label: 'Latitude' },
+            { key: 'lng', label: 'Longitude' }
+        ];
+
+        function getPopupHiddenFields() {
+            try {
+                const val = localStorage.getItem('ps_hidden_fields');
+                return val ? JSON.parse(val) : [];
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function setPopupHiddenFields(arr) {
+            try {
+                localStorage.setItem('ps_hidden_fields', JSON.stringify(arr));
+            } catch(e) {}
+        }
+
+        function togglePopupFieldsManager(btn) {
+            const popup = btn.closest('.station-popup-card');
+            if (!popup) return;
+            const drawer = popup.querySelector('.popup-fields-manager');
+            if (drawer) {
+                drawer.classList.toggle('hidden');
+            }
+        }
+
+        function hideSinglePopupField(key, btn) {
+            let hidden = getPopupHiddenFields();
+            if (!hidden.includes(key)) {
+                hidden.push(key);
+                setPopupHiddenFields(hidden);
+            }
+            const popup = btn.closest('.station-popup-card');
+            if (popup) {
+                const row = popup.querySelector(`tr[data-field-key="${key}"]`);
+                if (row) {
+                    row.style.display = 'none';
+                }
+                updatePopupCountsAndCheckboxes(popup, hidden);
+            }
+        }
+
+        function toggleFieldFromCheckbox(key, isChecked, cb) {
+            let hidden = getPopupHiddenFields();
+            if (isChecked) {
+                hidden = hidden.filter(k => k !== key);
+            } else {
+                if (!hidden.includes(key)) {
+                    hidden.push(key);
+                }
+            }
+            setPopupHiddenFields(hidden);
+            const popup = cb.closest('.station-popup-card');
+            if (popup) {
+                const row = popup.querySelector(`tr[data-field-key="${key}"]`);
+                if (row) {
+                    row.style.display = isChecked ? '' : 'none';
+                }
+                updatePopupCountsAndCheckboxes(popup, hidden);
+            }
+        }
+
+        function setAllPopupFieldsVisible(btn, makeAllVisible) {
+            const hidden = makeAllVisible ? [] : POPUP_FIELD_KEYS.map(f => f.key);
+            setPopupHiddenFields(hidden);
+            const popup = btn.closest('.station-popup-card');
+            if (popup) {
+                popup.querySelectorAll('tr[data-field-key]').forEach(row => {
+                    const k = row.getAttribute('data-field-key');
+                    row.style.display = (makeAllVisible || !hidden.includes(k)) ? '' : 'none';
+                });
+                updatePopupCountsAndCheckboxes(popup, hidden);
+            }
+        }
+
+        function updatePopupCountsAndCheckboxes(popup, hidden) {
+            const total = POPUP_FIELD_KEYS.length;
+            const hiddenCount = hidden.length;
+            const visibleCount = total - hiddenCount;
+            const countEl = popup.querySelector('.popup-fields-count');
+            if (countEl) {
+                countEl.innerHTML = `${visibleCount}/${total}${hiddenCount > 0 ? ` <span class="text-rose-600 font-semibold">(${hiddenCount} hidden)</span>` : ''}`;
+            }
+            popup.querySelectorAll('.popup-field-checkbox').forEach(cb => {
+                const k = cb.getAttribute('data-field-key');
+                cb.checked = !hidden.includes(k);
+            });
+        }
+
         function buildStationPopupHtml(station) {
             const cat = (station.categorization || 'NORMAL').trim().toUpperCase();
             const badgeClass = SENSITIVITY_COLORS[cat]?.badge || 'bg-slate-100 text-slate-800';
@@ -1731,9 +1844,13 @@
             const lng = parseFloat(station.longitude);
             const navUrl = (!isNaN(lat) && !isNaN(lng)) ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : '#';
             const distDisplay = station.distance_from_ps_kms ? `${station.distance_from_ps_kms} KM` : 'N/A';
+            const hidden = getPopupHiddenFields();
+            const totalCount = POPUP_FIELD_KEYS.length;
+            const hiddenCount = hidden.length;
+            const visibleCount = totalCount - hiddenCount;
 
             return `
-                <div class="p-1 font-sans text-xs max-w-[420px]">
+                <div class="station-popup-card p-1 font-sans text-xs max-w-[420px]">
                     <div class="flex justify-between items-start gap-1 pb-1.5 border-b mb-1.5">
                         <div>
                             <span class="text-[10px] font-bold text-slate-500 uppercase">${station.psname || 'Police Station'} PS ${station.code ? `(Code: ${station.code})` : ''}</span>
@@ -1764,31 +1881,238 @@
                         </div>
                     </div>
 
+                    <!-- Details Toolbar with count & Hide/Show button -->
+                    <div class="flex items-center justify-between px-1.5 py-1 mb-1.5 bg-slate-100 rounded border border-slate-200 text-[11px]">
+                        <div class="flex items-center gap-1">
+                            <span class="font-bold text-slate-700">Details:</span>
+                            <span class="popup-fields-count text-[10px] text-slate-600 font-medium">${visibleCount}/${totalCount}${hiddenCount > 0 ? ` <span class="text-rose-600 font-semibold">(${hiddenCount} hidden)</span>` : ''}</span>
+                        </div>
+                        <button type="button" onclick="togglePopupFieldsManager(this)" class="bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 hover:border-blue-400 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 shadow-2xs transition cursor-pointer">
+                            <i class="fa-solid fa-sliders text-[9px]"></i> Hide / Show Fields
+                        </button>
+                    </div>
+
+                    <!-- Manager Drawer inside Popup (Hidden by default) -->
+                    <div class="popup-fields-manager hidden bg-slate-50 border border-slate-300 rounded p-2 mb-2 text-xs shadow-inner">
+                        <div class="flex items-center justify-between pb-1.5 border-b border-slate-200 mb-1.5">
+                            <span class="font-bold text-slate-800 text-[11px]"><i class="fa-solid fa-eye text-blue-600 mr-1"></i> Choose Fields to Show:</span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="setAllPopupFieldsVisible(this, true)" class="text-[10px] bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-semibold cursor-pointer">Show All</button>
+                                <button type="button" onclick="togglePopupFieldsManager(this)" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-semibold cursor-pointer">Done</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1 max-h-48 overflow-y-auto pr-1 text-[11px]">
+                            ${POPUP_FIELD_KEYS.map(f => `
+                                <label class="flex items-center gap-1.5 py-0.5 px-1 rounded hover:bg-white cursor-pointer select-none border border-transparent hover:border-slate-200">
+                                    <input type="checkbox" data-field-key="${f.key}" class="popup-field-checkbox rounded text-blue-600 cursor-pointer" ${!hidden.includes(f.key) ? 'checked' : ''} onchange="toggleFieldFromCheckbox('${f.key}', this.checked, this)">
+                                    <span class="text-slate-700 truncate" title="${f.label}">${f.label}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Table with all 22 fields and individual quick hide buttons -->
                     <div class="max-h-72 sm:max-h-80 overflow-y-auto pr-1 mb-2 border-t border-b border-slate-200">
                         <table class="w-full text-[11px] leading-snug">
                             <tbody>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium w-40 shrink-0 align-top">Name of the Mandal / ZPTC Segment:</td><td class="py-1 font-semibold text-slate-800 break-words">${station.mandal_zptc_segment || 'N/A'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name of the MPTC Segment:</td><td class="py-1 text-slate-800 break-words">${station.mptc_segment || 'N/A'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Route_no:</td><td class="py-1 font-bold text-blue-700">Route ${station.route_no || 'N/A'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Route Inchage:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.route_incharge || station.route_staff || 'N/A')}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Striking force Incharge:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.striking_force_incharge || 'N/A')}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Special Stricking force Incharge:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.special_striking_force_incharge || 'N/A')}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">QRT:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.qrt || 'N/A')}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name of the PS:</td><td class="py-1 font-bold text-slate-900 break-words">${station.psname || 'N/A'} Police Station</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Code:</td><td class="py-1"><span class="font-mono font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300">${station.code || 'N/A'}</span></td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name of the Polling Station Location (PSL):</td><td class="py-1 font-semibold text-blue-950 break-words">${station.polling_station_location || 'N/A'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">No. of Poliing Stations:</td><td class="py-1 font-bold text-slate-800">${station.no_of_polling_stations || '1'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">No. of Voters:</td><td class="py-1 font-bold text-purple-700">${(parseInt(station.no_of_voters, 10) || 0).toLocaleString()}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name & Contact No. of BLO:</td><td class="py-1 font-bold text-emerald-700 leading-tight break-words">${formatPhoneLinks(station.blo_contact_no || 'N/A')}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Distance from Police Station in KMs:</td><td class="py-1 font-bold text-slate-800">${distDisplay}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE):</td><td class="py-1"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} inline-block">${cat}</span></td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">SI:</td><td class="py-1 font-semibold text-slate-800">${station.si || '0'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">ASI/HC:</td><td class="py-1 font-semibold text-slate-800">${station.asi_hc || '0'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">PC:</td><td class="py-1 font-semibold text-slate-800">${station.pc || '0'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">HG:</td><td class="py-1 font-semibold text-slate-800">${station.hg || '0'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Others:</td><td class="py-1 font-semibold text-slate-800">${station.others || '-'}</td></tr>
-                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Latitude:</td><td class="py-1 text-slate-700 font-mono font-semibold">${station.latitude || 'N/A'}</td></tr>
-                                <tr><td class="py-1 text-slate-500 font-medium align-top">Longitude:</td><td class="py-1 text-slate-700 font-mono font-semibold">${station.longitude || 'N/A'}</td></tr>
+                                <tr data-field-key="mandal_zptc" style="${hidden.includes('mandal_zptc') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium w-40 shrink-0 align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Name of the Mandal / ZPTC Segment:</span>
+                                            <button type="button" onclick="hideSinglePopupField('mandal_zptc', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-800 break-words">${station.mandal_zptc_segment || 'N/A'}</td>
+                                </tr>
+                                <tr data-field-key="mptc" style="${hidden.includes('mptc') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Name of the MPTC Segment:</span>
+                                            <button type="button" onclick="hideSinglePopupField('mptc', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 text-slate-800 break-words">${station.mptc_segment || 'N/A'}</td>
+                                </tr>
+                                <tr data-field-key="route_no" style="${hidden.includes('route_no') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Route_no:</span>
+                                            <button type="button" onclick="hideSinglePopupField('route_no', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-bold text-blue-700">Route ${station.route_no || 'N/A'}</td>
+                                </tr>
+                                <tr data-field-key="route_incharge" style="${hidden.includes('route_incharge') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Route Inchage:</span>
+                                            <button type="button" onclick="hideSinglePopupField('route_incharge', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.route_incharge || station.route_staff || 'N/A')}</td>
+                                </tr>
+                                <tr data-field-key="striking_incharge" style="${hidden.includes('striking_incharge') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Striking force Incharge:</span>
+                                            <button type="button" onclick="hideSinglePopupField('striking_incharge', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.striking_force_incharge || 'N/A')}</td>
+                                </tr>
+                                <tr data-field-key="special_striking" style="${hidden.includes('special_striking') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Special Stricking force Incharge:</span>
+                                            <button type="button" onclick="hideSinglePopupField('special_striking', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.special_striking_force_incharge || 'N/A')}</td>
+                                </tr>
+                                <tr data-field-key="qrt" style="${hidden.includes('qrt') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>QRT:</span>
+                                            <button type="button" onclick="hideSinglePopupField('qrt', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.qrt || 'N/A')}</td>
+                                </tr>
+                                <tr data-field-key="psname" style="${hidden.includes('psname') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Name of the PS:</span>
+                                            <button type="button" onclick="hideSinglePopupField('psname', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-bold text-slate-900 break-words">${station.psname || 'N/A'} Police Station</td>
+                                </tr>
+                                <tr data-field-key="code" style="${hidden.includes('code') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Code:</span>
+                                            <button type="button" onclick="hideSinglePopupField('code', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1"><span class="font-mono font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300">${station.code || 'N/A'}</span></td>
+                                </tr>
+                                <tr data-field-key="location" style="${hidden.includes('location') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Name of the Polling Station Location (PSL):</span>
+                                            <button type="button" onclick="hideSinglePopupField('location', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-blue-950 break-words">${station.polling_station_location || 'N/A'}</td>
+                                </tr>
+                                <tr data-field-key="ps_count" style="${hidden.includes('ps_count') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>No. of Poliing Stations:</span>
+                                            <button type="button" onclick="hideSinglePopupField('ps_count', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-bold text-slate-800">${station.no_of_polling_stations || '1'}</td>
+                                </tr>
+                                <tr data-field-key="voters" style="${hidden.includes('voters') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>No. of Voters:</span>
+                                            <button type="button" onclick="hideSinglePopupField('voters', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-bold text-purple-700">${(parseInt(station.no_of_voters, 10) || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr data-field-key="blo" style="${hidden.includes('blo') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Name & Contact No. of BLO:</span>
+                                            <button type="button" onclick="hideSinglePopupField('blo', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-bold text-emerald-700 leading-tight break-words">${formatPhoneLinks(station.blo_contact_no || 'N/A')}</td>
+                                </tr>
+                                <tr data-field-key="distance" style="${hidden.includes('distance') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Distance from Police Station in KMs:</span>
+                                            <button type="button" onclick="hideSinglePopupField('distance', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-bold text-slate-800">${distDisplay}</td>
+                                </tr>
+                                <tr data-field-key="sensitivity" style="${hidden.includes('sensitivity') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE):</span>
+                                            <button type="button" onclick="hideSinglePopupField('sensitivity', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} inline-block">${cat}</span></td>
+                                </tr>
+                                <tr data-field-key="si" style="${hidden.includes('si') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>SI:</span>
+                                            <button type="button" onclick="hideSinglePopupField('si', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-800">${station.si || '0'}</td>
+                                </tr>
+                                <tr data-field-key="asi_hc" style="${hidden.includes('asi_hc') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>ASI/HC:</span>
+                                            <button type="button" onclick="hideSinglePopupField('asi_hc', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-800">${station.asi_hc || '0'}</td>
+                                </tr>
+                                <tr data-field-key="pc" style="${hidden.includes('pc') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>PC:</span>
+                                            <button type="button" onclick="hideSinglePopupField('pc', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-800">${station.pc || '0'}</td>
+                                </tr>
+                                <tr data-field-key="hg" style="${hidden.includes('hg') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>HG:</span>
+                                            <button type="button" onclick="hideSinglePopupField('hg', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-800">${station.hg || '0'}</td>
+                                </tr>
+                                <tr data-field-key="others" style="${hidden.includes('others') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Others:</span>
+                                            <button type="button" onclick="hideSinglePopupField('others', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 font-semibold text-slate-800">${station.others || '-'}</td>
+                                </tr>
+                                <tr data-field-key="lat" style="${hidden.includes('lat') ? 'display:none;' : ''}" class="border-b border-slate-100 hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Latitude:</span>
+                                            <button type="button" onclick="hideSinglePopupField('lat', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 text-slate-700 font-mono font-semibold">${station.latitude || 'N/A'}</td>
+                                </tr>
+                                <tr data-field-key="lng" style="${hidden.includes('lng') ? 'display:none;' : ''}" class="hover:bg-slate-50 transition">
+                                    <td class="py-1 text-slate-500 font-medium align-top">
+                                        <div class="flex items-center justify-between pr-1">
+                                            <span>Longitude:</span>
+                                            <button type="button" onclick="hideSinglePopupField('lng', this)" title="Hide this field" class="text-slate-300 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer text-[10px]"><i class="fa-solid fa-eye-slash"></i></button>
+                                        </div>
+                                    </td>
+                                    <td class="py-1 text-slate-700 font-mono font-semibold">${station.longitude || 'N/A'}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1805,7 +2129,7 @@
             `;
         }
 
-        function focusStationOnMap(lat, lng, stationId) {
+                function focusStationOnMap(lat, lng, stationId) {
             if (!mainMap) return;
             const fLat = parseFloat(lat);
             const fLng = parseFloat(lng);
