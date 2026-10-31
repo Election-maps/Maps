@@ -137,9 +137,6 @@
                     <button onclick="switchTab('report')" id="tab-btn-report" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
                         <i class="fa-solid fa-table-list text-cyan-400"></i> Polling Stations Report
                     </button>
-                    <button onclick="switchTab('routewise')" id="tab-btn-routewise" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
-                        <i class="fa-solid fa-route text-emerald-400"></i> PS Route Wise
-                    </button>
                     <button onclick="openAddModal()" class="px-3.5 py-1.5 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-plus"></i> Add PS
                     </button>
@@ -1040,14 +1037,18 @@
             ['dashboard', 'map', 'report', 'routewise'].forEach(t => {
                 const el = document.getElementById(`tab-${t}`);
                 const btn = document.getElementById(`tab-btn-${t}`);
-                if (t === tabId) {
-                    el.classList.remove('hidden');
-                    btn.classList.add('bg-blue-600', 'text-white');
-                    btn.classList.remove('bg-slate-800', 'text-slate-300');
-                } else {
-                    el.classList.add('hidden');
-                    btn.classList.remove('bg-blue-600', 'text-white');
-                    btn.classList.add('bg-slate-800', 'text-slate-300');
+                if (el) {
+                    if (t === tabId) el.classList.remove('hidden');
+                    else el.classList.add('hidden');
+                }
+                if (btn) {
+                    if (t === tabId) {
+                        btn.classList.add('bg-blue-600', 'text-white');
+                        btn.classList.remove('bg-slate-800', 'text-slate-300');
+                    } else {
+                        btn.classList.remove('bg-blue-600', 'text-white');
+                        btn.classList.add('bg-slate-800', 'text-slate-300');
+                    }
                 }
             });
 
