@@ -435,32 +435,26 @@
 
                     <!-- Column Visibility & Action Buttons -->
                     <div class="flex items-center gap-2">
-                        <!-- Column Visibility Manager -->
+                        <!-- Dynamic Column Position Editor & Visibility Menu -->
                         <div class="relative inline-block text-left">
-                            <button onclick="toggleColumnMenu()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded text-xs border border-slate-300 flex items-center gap-1.5 transition">
-                                <i class="fa-solid fa-table-columns text-blue-600"></i> Columns <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                            <button onclick="toggleColumnMenu()" class="bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded text-xs border border-blue-300 flex items-center gap-1.5 transition shadow-xs">
+                                <i class="fa-solid fa-table-columns text-blue-600"></i> Edit Columns (◀ / ▶) <i class="fa-solid fa-chevron-down text-[10px]"></i>
                             </button>
-                            <div id="column-visibility-menu" class="hidden absolute right-0 mt-1.5 w-60 bg-white border border-slate-200 rounded-lg shadow-2xl z-[1200] p-2.5 text-xs space-y-1 max-h-80 overflow-y-auto">
-                                <div class="font-bold text-slate-800 border-b pb-1 mb-1.5 flex justify-between items-center">
-                                    <span>Show / Hide Columns</span>
-                                    <button onclick="resetColumnsVisibility()" class="text-[10px] text-blue-600 hover:underline">Reset All</button>
+                            <div id="column-visibility-menu" class="hidden absolute right-0 mt-1.5 w-80 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1200] p-3 text-xs space-y-2">
+                                <div class="font-bold text-slate-800 border-b pb-1.5 flex justify-between items-center">
+                                    <span class="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                                        <i class="fa-solid fa-sliders text-blue-600"></i> Column Position Editor
+                                    </span>
+                                    <button onclick="resetColumnsOrderAndVisibility()" class="text-[10px] text-blue-600 hover:underline font-bold">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset Order
+                                    </button>
                                 </div>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-id')" id="chk-col-id" class="rounded text-blue-600"> <span>ID</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-mandal')" id="chk-col-mandal" class="rounded text-blue-600"> <span>Mandal / ZPTC</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-mptc')" id="chk-col-mptc" class="rounded text-blue-600"> <span>MPTC Segment</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-route')" id="chk-col-route" class="rounded text-blue-600"> <span>Route No</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-psname')" id="chk-col-psname" class="rounded text-blue-600"> <span>Police Station (PS)</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-code')" id="chk-col-code" class="rounded text-blue-600"> <span>PS Code</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-location')" id="chk-col-location" class="rounded text-blue-600"> <span>Location / Building</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-voters')" id="chk-col-voters" class="rounded text-blue-600"> <span>Electors / Voters</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-dist')" id="chk-col-dist" class="rounded text-blue-600"> <span>Distance (KM)</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-cat')" id="chk-col-cat" class="rounded text-blue-600"> <span>Category (Sensitivity)</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-staff')" id="chk-col-staff" class="rounded text-blue-600"> <span>Route Staff (SI / CI)</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-striking')" id="chk-col-striking" class="rounded text-blue-600"> <span>Striking Force (ASI/HC)</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-force')" id="chk-col-force" class="rounded text-blue-600"> <span>Station Staff (PC / HG)</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-blo')" id="chk-col-blo" class="rounded text-blue-600"> <span>BLO Contact</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-lat')" id="chk-col-lat" class="rounded text-blue-600"> <span>Latitude</span></label>
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" checked onchange="toggleColumn('col-lng')" id="chk-col-lng" class="rounded text-blue-600"> <span>Longitude</span></label>
+                                <p class="text-[10px] text-slate-500 leading-tight">
+                                    Move columns <b>◀ Left</b> or <b>Right ▶</b> at any moment, or toggle show/hide:
+                                </p>
+                                <div class="space-y-1 max-h-72 overflow-y-auto pr-1" id="columns-editor-list">
+                                    <!-- Populated dynamically by renderColumnEditorMenu() -->
+                                </div>
                             </div>
                         </div>
 
@@ -521,63 +515,8 @@
             <div class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
                 <div class="overflow-x-auto max-h-[calc(100vh-280px)]">
                     <table class="w-full text-left border-collapse text-[11px] whitespace-nowrap" id="polling-master-table">
-                        <thead class="bg-slate-900 text-white font-semibold sticky top-0 z-10 shadow">
-                            <tr>
-                                <th class="p-2.5 text-center w-12 col-sno cursor-pointer select-none" onclick="toggleSort('sno')">
-                                    <span>#</span> <span id="sort-icon-sno" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 col-id cursor-pointer select-none" onclick="toggleSort('id')">
-                                    <span>ID</span> <span id="sort-icon-id" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 col-mandal cursor-pointer select-none" onclick="toggleSort('mandal_zptc_segment')">
-                                    <span>Mandal / ZPTC</span> <span id="sort-icon-mandal_zptc_segment" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 col-mptc cursor-pointer select-none" onclick="toggleSort('mptc_segment')">
-                                    <span>MPTC Segment</span> <span id="sort-icon-mptc_segment" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 text-center col-route cursor-pointer select-none" onclick="toggleSort('route_no')">
-                                    <span>Route</span> <span id="sort-icon-route_no" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 col-psname cursor-pointer select-none" onclick="toggleSort('psname')">
-                                    <span>Police Station (PS)</span> <span id="sort-icon-psname" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 text-center col-code cursor-pointer select-none" onclick="toggleSort('code')">
-                                    <span>PS Code</span> <span id="sort-icon-code" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 col-location cursor-pointer select-none" onclick="toggleSort('polling_station_location')">
-                                    <span>Polling Station Location / Building</span> <span id="sort-icon-polling_station_location" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 text-center col-voters cursor-pointer select-none" onclick="toggleSort('no_of_voters')">
-                                    <span>Voters</span> <span id="sort-icon-no_of_voters" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 text-center col-dist cursor-pointer select-none" onclick="toggleSort('distance_from_ps_kms')">
-                                    <span>Dist (km)</span> <span id="sort-icon-distance_from_ps_kms" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 text-center col-cat cursor-pointer select-none" onclick="toggleSort('categorization')">
-                                    <span>Category</span> <span id="sort-icon-categorization" class="text-[9px] text-slate-400"></span>
-                                </th>
-                                <th class="p-2.5 col-staff">
-                                    <span>Route Staff (SI / CI)</span>
-                                </th>
-                                <th class="p-2.5 col-striking">
-                                    <span>Striking Force (ASI / HC)</span>
-                                </th>
-                                <th class="p-2.5 text-center col-force">
-                                    <span>PC / HG</span>
-                                </th>
-                                <th class="p-2.5 col-blo">
-                                    <span>BLO Contact</span>
-                                </th>
-                                <th class="p-2.5 col-lat">
-                                    <span>Latitude</span>
-                                </th>
-                                <th class="p-2.5 col-lng">
-                                    <span>Longitude</span>
-                                </th>
-                                <th class="p-2.5 text-center col-actions">
-                                    <span>Actions</span>
-                                </th>
-                            </tr>
+                        <thead class="bg-slate-900 text-white font-semibold sticky top-0 z-10 shadow" id="master-table-thead">
+                            <!-- Populated dynamically with Left (◀) and Right (▶) reordering controls -->
                         </thead>
                         <tbody id="master-table-tbody" class="divide-y divide-slate-100">
                             <!-- Populated dynamically -->
@@ -1015,6 +954,7 @@
         let isTableRendered = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
+            initTableColumns();
             await initializeDataset();
             renderDashboard();
             populateDropdowns();
@@ -2304,11 +2244,218 @@
             }, 200);
         }
 
-        // ================= TAB 3: POLLING STATIONS REPORT (TABLE) =================
+        // ================= TAB 3: POLLING STATIONS REPORT (TABLE & DYNAMIC COLUMNS) =================
         let tableSortColumn = 'sno';
         let tableSortOrder = 'asc';
         let activeQuickCategory = '';
+
+        // Dynamic Table Columns Configuration
+        const TABLE_COLUMNS_DEF = {
+            'col-sno': {
+                key: 'col-sno',
+                label: '#',
+                sortKey: 'sno',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-center text-slate-500 font-bold col-sno ${hiddenCls}">${startIdx + idx + 1}</td>`
+            },
+            'col-id': {
+                key: 'col-id',
+                label: 'ID',
+                sortKey: 'id',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-slate-500 font-mono col-id font-bold ${hiddenCls}">${s.id}</td>`
+            },
+            'col-mandal': {
+                key: 'col-mandal',
+                label: 'Mandal / ZPTC',
+                sortKey: 'mandal_zptc_segment',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-medium text-slate-800 col-mandal ${hiddenCls}">${s.mandal_zptc_segment || '-'}</td>`
+            },
+            'col-mptc': {
+                key: 'col-mptc',
+                label: 'MPTC Segment',
+                sortKey: 'mptc_segment',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-slate-600 col-mptc ${hiddenCls}">${s.mptc_segment || '-'}</td>`
+            },
+            'col-route': {
+                key: 'col-route',
+                label: 'Route',
+                sortKey: 'route_no',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-center col-route ${hiddenCls}"><span class="bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded text-[10px] border border-blue-200">Route ${s.route_no || '-'}</span></td>`
+            },
+            'col-psname': {
+                key: 'col-psname',
+                label: 'Police Station (PS)',
+                sortKey: 'psname',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-bold text-slate-900 col-psname ${hiddenCls}">${s.psname || '-'}</td>`
+            },
+            'col-code': {
+                key: 'col-code',
+                label: 'PS Code',
+                sortKey: 'code',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-center col-code ${hiddenCls}"><span class="bg-slate-100 text-slate-700 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-300">${s.code || '-'}</span></td>`
+            },
+            'col-location': {
+                key: 'col-location',
+                label: 'Location / Building',
+                sortKey: 'polling_station_location',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-medium text-slate-800 whitespace-normal leading-snug max-w-sm col-location ${hiddenCls}">${s.polling_station_location || '-'}</td>`
+            },
+            'col-voters': {
+                key: 'col-voters',
+                label: 'Voters',
+                sortKey: 'no_of_voters',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-center font-bold text-purple-700 col-voters ${hiddenCls}">${(parseInt(s.no_of_voters, 10) || 0).toLocaleString()}</td>`
+            },
+            'col-dist': {
+                key: 'col-dist',
+                label: 'Dist (km)',
+                sortKey: 'distance_from_ps_kms',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-center col-dist ${hiddenCls}"><span class="bg-slate-50 text-slate-700 font-semibold px-2 py-0.5 rounded border border-slate-200">${s.distance_from_ps_kms ? s.distance_from_ps_kms + ' km' : '-'}</span></td>`
+            },
+            'col-cat': {
+                key: 'col-cat',
+                label: 'Category',
+                sortKey: 'categorization',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls, badgeClass, cat) => `<td class="p-2 text-center col-cat ${hiddenCls}"><span class="px-2.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} inline-block shadow-sm">${cat}</span></td>`
+            },
+            'col-staff': {
+                key: 'col-staff',
+                label: 'Route Staff (SI / CI)',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls, badgeClass, cat, formattedRouteStaff) => `<td class="p-2 text-[10px] text-slate-800 whitespace-normal leading-tight col-staff max-w-xs ${hiddenCls}">${formattedRouteStaff}</td>`
+            },
+            'col-striking': {
+                key: 'col-striking',
+                label: 'Striking Force (ASI / HC)',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 col-striking ${hiddenCls}">${s.asi_hc || '-'}</td>`
+            },
+            'col-force': {
+                key: 'col-force',
+                label: 'PC / HG',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-center col-force ${hiddenCls}"><span class="text-[10px] bg-slate-100 text-slate-700 font-medium px-1.5 py-0.5 rounded border border-slate-200">PC: ${s.pc || 0} | HG: ${s.hg || 0}</span></td>`
+            },
+            'col-blo': {
+                key: 'col-blo',
+                label: 'BLO Contact',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls, badgeClass, cat, formattedRouteStaff, formattedBlo) => `<td class="p-2 text-[10px] text-slate-700 col-blo whitespace-normal leading-tight ${hiddenCls}">${formattedBlo}</td>`
+            },
+            'col-lat': {
+                key: 'col-lat',
+                label: 'Latitude',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-mono text-[10px] text-slate-600 col-lat ${hiddenCls}">${s.latitude || '-'}</td>`
+            },
+            'col-lng': {
+                key: 'col-lng',
+                label: 'Longitude',
+                align: 'text-left',
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-mono text-[10px] text-slate-600 col-lng ${hiddenCls}">${s.longitude || '-'}</td>`
+            },
+            'col-actions': {
+                key: 'col-actions',
+                label: 'Actions',
+                align: 'text-center',
+                renderCell: (s, idx, startIdx, hiddenCls) => `
+                    <td class="p-2 text-center col-actions ${hiddenCls}">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="locateStationOnMap(${s.id})" title="Locate on Live Map" class="w-6 h-6 rounded bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center transition shadow-sm">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </button>
+                            <button onclick="openEditModal(${s.id})" title="Edit Details" class="w-6 h-6 rounded bg-amber-100 hover:bg-amber-600 hover:text-white text-amber-700 flex items-center justify-center transition shadow-sm">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteStation(${s.id})" title="Delete Station" class="w-6 h-6 rounded bg-rose-100 hover:bg-rose-600 hover:text-white text-rose-700 flex items-center justify-center transition shadow-sm">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>`
+            }
+        };
+
+        const DEFAULT_TABLE_COLUMNS_KEYS = [
+            'col-sno', 'col-id', 'col-mandal', 'col-mptc', 'col-route', 'col-psname', 
+            'col-code', 'col-location', 'col-voters', 'col-dist', 'col-cat', 'col-staff', 
+            'col-striking', 'col-force', 'col-blo', 'col-lat', 'col-lng', 'col-actions'
+        ];
+
+        let tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_KEYS];
         let hiddenTableColumns = new Set();
+
+        function initTableColumns() {
+            try {
+                const savedOrder = JSON.parse(localStorage.getItem('police_election_cols_order'));
+                if (Array.isArray(savedOrder) && savedOrder.length > 0) {
+                    tableColumnsOrder = savedOrder.filter(k => TABLE_COLUMNS_DEF[k]);
+                    DEFAULT_TABLE_COLUMNS_KEYS.forEach(k => {
+                        if (!tableColumnsOrder.includes(k)) tableColumnsOrder.push(k);
+                    });
+                }
+                const savedHidden = JSON.parse(localStorage.getItem('police_election_cols_hidden'));
+                if (Array.isArray(savedHidden)) {
+                    hiddenTableColumns = new Set(savedHidden);
+                }
+            } catch (e) {
+                console.error('Error loading columns state:', e);
+            }
+            renderTableHeaders();
+            renderColumnEditorMenu();
+        }
+
+        function saveColumnsState() {
+            try {
+                localStorage.setItem('police_election_cols_order', JSON.stringify(tableColumnsOrder));
+                localStorage.setItem('police_election_cols_hidden', JSON.stringify(Array.from(hiddenTableColumns)));
+            } catch (e) {
+                console.error('Error saving columns state:', e);
+            }
+        }
+
+        function moveColumnLeft(colKey, e) {
+            if (e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            const idx = tableColumnsOrder.indexOf(colKey);
+            if (idx > 0) {
+                const temp = tableColumnsOrder[idx - 1];
+                tableColumnsOrder[idx - 1] = tableColumnsOrder[idx];
+                tableColumnsOrder[idx] = temp;
+                saveColumnsState();
+                renderTableHeaders();
+                renderTable();
+                renderColumnEditorMenu();
+            }
+        }
+
+        function moveColumnRight(colKey, e) {
+            if (e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            const idx = tableColumnsOrder.indexOf(colKey);
+            if (idx !== -1 && idx < tableColumnsOrder.length - 1) {
+                const temp = tableColumnsOrder[idx + 1];
+                tableColumnsOrder[idx + 1] = tableColumnsOrder[idx];
+                tableColumnsOrder[idx] = temp;
+                saveColumnsState();
+                renderTableHeaders();
+                renderTable();
+                renderColumnEditorMenu();
+            }
+        }
 
         function toggleColumnMenu() {
             const menu = document.getElementById('column-visibility-menu');
@@ -2319,7 +2466,7 @@
         document.addEventListener('click', (e) => {
             const menu = document.getElementById('column-visibility-menu');
             const btn = e.target.closest('button');
-            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && (!btn || !btn.textContent.includes('Columns'))) {
+            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && (!btn || !btn.textContent.includes('Edit Columns'))) {
                 menu.classList.add('hidden');
             }
         });
@@ -2330,23 +2477,22 @@
             } else {
                 hiddenTableColumns.add(colClass);
             }
+            saveColumnsState();
             applyColumnVisibility();
+            renderColumnEditorMenu();
         }
 
-        function resetColumnsVisibility() {
+        function resetColumnsOrderAndVisibility() {
+            tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_KEYS];
             hiddenTableColumns.clear();
-            document.querySelectorAll('#column-visibility-menu input[type="checkbox"]').forEach(chk => chk.checked = true);
-            applyColumnVisibility();
+            saveColumnsState();
+            renderTableHeaders();
+            renderTable();
+            renderColumnEditorMenu();
         }
 
         function applyColumnVisibility() {
-            const allColClasses = [
-                'col-sno', 'col-id', 'col-mandal', 'col-mptc', 'col-route', 'col-psname', 
-                'col-code', 'col-location', 'col-voters', 'col-dist', 'col-cat', 'col-staff', 
-                'col-striking', 'col-force', 'col-blo', 'col-lat', 'col-lng', 'col-actions'
-            ];
-
-            allColClasses.forEach(c => {
+            DEFAULT_TABLE_COLUMNS_KEYS.forEach(c => {
                 const isHidden = hiddenTableColumns.has(c);
                 const els = document.querySelectorAll(`.${c}`);
                 els.forEach(el => {
@@ -2354,6 +2500,75 @@
                     else el.classList.remove('hidden');
                 });
             });
+        }
+
+        function renderTableHeaders() {
+            const thead = document.getElementById('master-table-thead');
+            if (!thead) return;
+
+            let thsHtml = '';
+            tableColumnsOrder.forEach((colKey, idx) => {
+                const col = TABLE_COLUMNS_DEF[colKey];
+                if (!col) return;
+                const isHidden = hiddenTableColumns.has(colKey);
+                const isFirst = idx === 0;
+                const isLast = idx === tableColumnsOrder.length - 1;
+
+                thsHtml += `
+                    <th class="p-2 ${col.align} ${col.key} ${isHidden ? 'hidden' : ''} bg-slate-900 text-white font-semibold sticky top-0 z-10 shadow select-none border-r border-slate-800 last:border-r-0">
+                        <div class="flex items-center justify-between gap-1 w-full min-w-[70px]">
+                            <!-- Move Left Button -->
+                            <button onclick="moveColumnLeft('${col.key}', event)" title="Move column left (◀)" class="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition ${isFirst ? 'opacity-0 pointer-events-none' : 'opacity-80 hover:opacity-100'}">
+                                <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                            </button>
+                            <!-- Column Title / Sort -->
+                            <div class="flex-1 flex items-center justify-center gap-1 cursor-pointer hover:text-blue-300 transition py-0.5 px-0.5" ${col.sortKey ? `onclick="toggleSort('${col.sortKey}')"` : ''}>
+                                <span class="font-bold text-[11px] whitespace-nowrap">${col.label}</span>
+                                ${col.sortKey ? `<span id="sort-icon-${col.sortKey}" class="text-[9px] text-slate-400">↕</span>` : ''}
+                            </div>
+                            <!-- Move Right Button -->
+                            <button onclick="moveColumnRight('${col.key}', event)" title="Move column right (▶)" class="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition ${isLast ? 'opacity-0 pointer-events-none' : 'opacity-80 hover:opacity-100'}">
+                                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </button>
+                        </div>
+                    </th>
+                `;
+            });
+
+            thead.innerHTML = `<tr>${thsHtml}</tr>`;
+        }
+
+        function renderColumnEditorMenu() {
+            const listEl = document.getElementById('columns-editor-list');
+            if (!listEl) return;
+
+            let itemsHtml = '';
+            tableColumnsOrder.forEach((colKey, idx) => {
+                const col = TABLE_COLUMNS_DEF[colKey];
+                if (!col) return;
+                const isHidden = hiddenTableColumns.has(colKey);
+                const isFirst = idx === 0;
+                const isLast = idx === tableColumnsOrder.length - 1;
+
+                itemsHtml += `
+                    <div class="flex items-center justify-between gap-1.5 py-1 px-2 rounded hover:bg-slate-100 text-xs border border-slate-100 transition">
+                        <label class="flex items-center gap-2 cursor-pointer flex-1 truncate select-none">
+                            <input type="checkbox" ${isHidden ? '' : 'checked'} onchange="toggleColumn('${col.key}')" class="rounded text-blue-600 focus:ring-1 focus:ring-blue-500">
+                            <span class="truncate ${isHidden ? 'text-slate-400 line-through' : 'font-semibold text-slate-800'}">${col.label}</span>
+                        </label>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="moveColumnLeft('${col.key}', event)" title="Move Left (◀)" class="px-2 py-0.5 bg-slate-200 hover:bg-blue-600 hover:text-white rounded text-[10px] font-bold transition ${isFirst ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}" ${isFirst ? 'disabled' : ''}>
+                                <i class="fa-solid fa-arrow-left"></i> Left
+                            </button>
+                            <button onclick="moveColumnRight('${col.key}', event)" title="Move Right (▶)" class="px-2 py-0.5 bg-slate-200 hover:bg-blue-600 hover:text-white rounded text-[10px] font-bold transition ${isLast ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}" ${isLast ? 'disabled' : ''}>
+                                Right <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = itemsHtml;
         }
 
         function setQuickCategory(cat) {
@@ -2528,7 +2743,7 @@
             if (!tbody) return;
 
             if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="18" class="p-8 text-center text-slate-400"><i class="fa-solid fa-folder-open text-2xl mb-2"></i><br>ఎలాంటి రికార్డులు కనుగొనబడలేదు (No matching records found).</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${tableColumnsOrder.length}" class="p-8 text-center text-slate-400"><i class="fa-solid fa-folder-open text-2xl mb-2"></i><br>ఎలాంటి రికార్డులు కనుగొనబడలేదు (No matching records found).</td></tr>`;
             } else {
                 let rowsHtml = '';
                 pageData.forEach((s, idx) => {
@@ -2539,70 +2754,15 @@
                     const formattedRouteStaff = formatPhoneLinks(s.route_staff);
                     const formattedBlo = formatPhoneLinks(s.blo_contact_no);
 
-                    rowsHtml += `
-                        <tr class="hover:bg-blue-50/50 border-b border-slate-100 transition-colors align-middle">
-                            <td class="p-2 text-center text-slate-500 font-bold col-sno">${startIdx + idx + 1}</td>
-                            <td class="p-2 text-slate-500 font-mono col-id font-bold">${s.id}</td>
-                            <td class="p-2 font-medium text-slate-800 col-mandal">${s.mandal_zptc_segment || '-'}</td>
-                            <td class="p-2 text-slate-600 col-mptc">${s.mptc_segment || '-'}</td>
-                            <td class="p-2 text-center col-route">
-                                <span class="bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded text-[10px] border border-blue-200">
-                                    Route ${s.route_no || '-'}
-                                </span>
-                            </td>
-                            <td class="p-2 font-bold text-slate-900 col-psname">${s.psname || '-'}</td>
-                            <td class="p-2 text-center col-code">
-                                <span class="bg-slate-100 text-slate-700 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-300">
-                                    ${s.code || '-'}
-                                </span>
-                            </td>
-                            <td class="p-2 font-medium text-slate-800 whitespace-normal leading-snug max-w-sm col-location">
-                                ${s.polling_station_location || '-'}
-                            </td>
-                            <td class="p-2 text-center font-bold text-purple-700 col-voters">
-                                ${(parseInt(s.no_of_voters, 10) || 0).toLocaleString()}
-                            </td>
-                            <td class="p-2 text-center col-dist">
-                                <span class="bg-slate-50 text-slate-700 font-semibold px-2 py-0.5 rounded border border-slate-200">
-                                    ${s.distance_from_ps_kms ? s.distance_from_ps_kms + ' km' : '-'}
-                                </span>
-                            </td>
-                            <td class="p-2 text-center col-cat">
-                                <span class="px-2.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} inline-block shadow-sm">
-                                    ${cat}
-                                </span>
-                            </td>
-                            <td class="p-2 text-[10px] text-slate-800 whitespace-normal leading-tight col-staff max-w-xs">
-                                ${formattedRouteStaff}
-                            </td>
-                            <td class="p-2 text-[10px] text-slate-700 col-striking">
-                                ${s.asi_hc || '-'}
-                            </td>
-                            <td class="p-2 text-center col-force">
-                                <span class="text-[10px] bg-slate-100 text-slate-700 font-medium px-1.5 py-0.5 rounded border border-slate-200">
-                                    PC: ${s.pc || 0} | HG: ${s.hg || 0}
-                                </span>
-                            </td>
-                            <td class="p-2 text-[10px] text-slate-700 col-blo whitespace-normal leading-tight">
-                                ${formattedBlo}
-                            </td>
-                            <td class="p-2 font-mono text-[10px] text-slate-600 col-lat">${s.latitude || '-'}</td>
-                            <td class="p-2 font-mono text-[10px] text-slate-600 col-lng">${s.longitude || '-'}</td>
-                            <td class="p-2 text-center col-actions">
-                                <div class="flex items-center justify-center gap-1">
-                                    <button onclick="locateStationOnMap(${s.id})" title="Locate on Live Map" class="w-6 h-6 rounded bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center transition shadow-sm">
-                                        <i class="fa-solid fa-location-dot"></i>
-                                    </button>
-                                    <button onclick="openEditModal(${s.id})" title="Edit Details" class="w-6 h-6 rounded bg-amber-100 hover:bg-amber-600 hover:text-white text-amber-700 flex items-center justify-center transition shadow-sm">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <button onclick="deleteStation(${s.id})" title="Delete Station" class="w-6 h-6 rounded bg-rose-100 hover:bg-rose-600 hover:text-white text-rose-700 flex items-center justify-center transition shadow-sm">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
+                    rowsHtml += `<tr class="hover:bg-blue-50/50 border-b border-slate-100 transition-colors align-middle">`;
+                    tableColumnsOrder.forEach(colKey => {
+                        const colDef = TABLE_COLUMNS_DEF[colKey];
+                        if (!colDef) return;
+                        const isHidden = hiddenTableColumns.has(colKey);
+                        const hiddenCls = isHidden ? 'hidden' : '';
+                        rowsHtml += colDef.renderCell(s, idx, startIdx, hiddenCls, badgeClass, cat, formattedRouteStaff, formattedBlo);
+                    });
+                    rowsHtml += `</tr>`;
                 });
                 tbody.innerHTML = rowsHtml;
             }
@@ -3080,27 +3240,32 @@
                 if (btn) btn.innerHTML = origHtml;
             }
 
-            const exportData = (tableFilteredStations && tableFilteredStations.length > 0 ? tableFilteredStations : allStations).map((s, idx) => ({
-                "S.No": idx + 1,
-                "ID": s.id || '',
-                "Police Station": s.psname || '',
-                "Mandal / ZPTC": s.mandal_zptc_segment || '',
-                "MPTC Segment": s.mptc_segment || '',
-                "Route No": s.route_no || '',
-                "PS Code": s.code || '',
-                "Polling Station Location": s.polling_station_location || '',
-                "Electors / Voters": s.no_of_voters || 0,
-                "Distance from PS (KMs)": s.distance_from_ps_kms || '',
-                "Sensitivity Category": (s.categorization || 'NORMAL').trim().toUpperCase(),
-                "Route Staff Details": s.route_staff || '',
-                "Staff Phone": s.route_staff_ph_no || '',
-                "BLO Contact": s.blo_contact_no || '',
-                "Striking Force": s.asi_hc || '',
-                "PC Count": s.pc || 0,
-                "HG Count": s.hg || 0,
-                "Latitude": s.latitude || '',
-                "Longitude": s.longitude || ''
-            }));
+            const exportData = (tableFilteredStations && tableFilteredStations.length > 0 ? tableFilteredStations : allStations).map((s, idx) => {
+                const row = {};
+                tableColumnsOrder.forEach(colKey => {
+                    if (hiddenTableColumns.has(colKey) || colKey === 'col-actions') return;
+                    const col = TABLE_COLUMNS_DEF[colKey];
+                    if (!col) return;
+                    if (colKey === 'col-sno') row['#'] = idx + 1;
+                    else if (colKey === 'col-id') row['ID'] = s.id || '';
+                    else if (colKey === 'col-mandal') row['Mandal / ZPTC'] = s.mandal_zptc_segment || '';
+                    else if (colKey === 'col-mptc') row['MPTC Segment'] = s.mptc_segment || '';
+                    else if (colKey === 'col-route') row['Route No'] = s.route_no || '';
+                    else if (colKey === 'col-psname') row['Police Station'] = s.psname || '';
+                    else if (colKey === 'col-code') row['PS Code'] = s.code || '';
+                    else if (colKey === 'col-location') row['Polling Station Location'] = s.polling_station_location || '';
+                    else if (colKey === 'col-voters') row['Electors / Voters'] = parseInt(s.no_of_voters, 10) || 0;
+                    else if (colKey === 'col-dist') row['Distance (KM)'] = s.distance_from_ps_kms || '';
+                    else if (colKey === 'col-cat') row['Sensitivity Category'] = (s.categorization || 'NORMAL').trim().toUpperCase();
+                    else if (colKey === 'col-staff') row['Route Staff Details'] = s.route_staff || '';
+                    else if (colKey === 'col-striking') row['Striking Force (ASI/HC)'] = s.asi_hc || '';
+                    else if (colKey === 'col-force') row['Police Force'] = `PC: ${s.pc || 0} | HG: ${s.hg || 0}`;
+                    else if (colKey === 'col-blo') row['BLO Contact'] = s.blo_contact_no || '';
+                    else if (colKey === 'col-lat') row['Latitude'] = s.latitude || '';
+                    else if (colKey === 'col-lng') row['Longitude'] = s.longitude || '';
+                });
+                return row;
+            });
 
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
