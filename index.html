@@ -982,6 +982,13 @@
 
         // Initialize Data (LocalStorage -> window.INITIAL_STATIONS -> fetch fallback)
         async function initializeDataset() {
+            const DATASET_VERSION = "2026-10-31_v3_zptc_mptc";
+            const savedVer = localStorage.getItem('POLICE_ELECTION_DATASET_VERSION');
+            if (savedVer !== DATASET_VERSION) {
+                localStorage.removeItem('POLICE_ELECTION_STATIONS_DATA');
+                localStorage.setItem('POLICE_ELECTION_DATASET_VERSION', DATASET_VERSION);
+            }
+
             const stored = localStorage.getItem('POLICE_ELECTION_STATIONS_DATA');
             if (stored) {
                 try {
