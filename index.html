@@ -282,25 +282,28 @@
         <!-- ================= TAB 2: LIVE ELECTION ROUTE MAP ================= -->
         <section id="tab-map" class="hidden space-y-2">
             <div class="bg-white p-2.5 rounded-lg shadow-sm border border-slate-200">
-                <!-- Map Filter Bar -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 items-end">
-                    <div>
+                <!-- Map Filter Bar (Responsive Flex with ZERO horizontal overflow) -->
+                <div class="flex flex-wrap items-end gap-2.5">
+                    <!-- Police Station Filter -->
+                    <div class="flex-1 min-w-[140px] max-w-xs">
                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Police Station</label>
-                        <select id="map-filter-psname" onchange="onMapPSChange(this.value)" class="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+                        <select id="map-filter-psname" onchange="onMapPSChange(this.value)" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white font-medium">
                             <option value="">-- All Police Stations --</option>
                         </select>
                     </div>
 
-                    <div>
+                    <!-- Route No Filter -->
+                    <div class="w-28 sm:w-32 min-w-[100px]">
                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Route No</label>
-                        <select id="map-filter-route" onchange="applyMapFilters()" class="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+                        <select id="map-filter-route" onchange="applyMapFilters()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white font-medium">
                             <option value="">-- All Routes --</option>
                         </select>
                     </div>
 
-                    <div>
+                    <!-- Category Filter -->
+                    <div class="w-28 sm:w-32 min-w-[100px]">
                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Category</label>
-                        <select id="map-filter-category" onchange="applyMapFilters()" class="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+                        <select id="map-filter-category" onchange="applyMapFilters()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
                             <option value="">-- All Categories --</option>
                             <option value="NORMAL">Normal</option>
                             <option value="SENSITIVE">Sensitive</option>
@@ -309,13 +312,14 @@
                         </select>
                     </div>
 
-                    <div>
+                    <!-- Search PSL / Village -->
+                    <div class="flex-1 min-w-[170px] max-w-sm">
                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                             <i class="fa-solid fa-magnifying-glass text-blue-600 mr-0.5"></i> Search Village / School
                         </label>
-                        <div class="relative w-60 sm:w-64" id="map-search-container">
-                            <input type="text" id="map-search-text" oninput="onMapSearchInput(this.value)" onfocus="onMapSearchFocus()" placeholder="Type PSL (e.g. MPP School)..." autocomplete="off" class="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 pr-6 bg-white">
-                            <button type="button" onclick="clearMapSearch()" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer" title="Clear">
+                        <div class="relative w-full" id="map-search-container">
+                            <input type="text" id="map-search-text" oninput="onMapSearchInput(this.value)" onfocus="onMapSearchFocus()" placeholder="Type PSL (e.g. MPP School)..." autocomplete="off" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 pr-7 bg-white">
+                            <button type="button" onclick="clearMapSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer" title="Clear">
                                 <i class="fa-solid fa-xmark"></i>
                             </button>
                             <!-- Automatic PSL Dropdown Suggestions on Map -->
@@ -324,22 +328,24 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-1.5 pb-0.5">
-                        <label class="flex items-center gap-1 text-[11px] font-medium cursor-pointer">
-                            <input type="checkbox" id="map-toggle-routes" checked onchange="toggleRoadRoutes(this.checked)" class="rounded text-blue-600">
-                            <span>Road Routes</span>
+                    <!-- Map Layers & Visibility Toggles (Road Routes & Borders) -->
+                    <div class="flex items-center gap-1.5">
+                        <label class="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 border border-rose-300 rounded text-rose-900 font-bold text-xs cursor-pointer hover:bg-rose-100 transition shadow-2xs select-none">
+                            <input type="checkbox" id="map-toggle-routes" checked onchange="toggleRoadRoutes(this.checked)" class="w-3.5 h-3.5 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
+                            <span><i class="fa-solid fa-route text-rose-600 mr-0.5"></i> Road Routes</span>
                         </label>
-                        <label class="flex items-center gap-1 text-[11px] font-medium cursor-pointer">
-                            <input type="checkbox" id="map-toggle-borders" checked onchange="toggleBorders(this.checked)" class="rounded text-blue-600">
+                        <label class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-slate-700 font-semibold text-xs cursor-pointer hover:bg-slate-100 transition shadow-2xs select-none">
+                            <input type="checkbox" id="map-toggle-borders" checked onchange="toggleBorders(this.checked)" class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
                             <span>Borders</span>
                         </label>
                     </div>
 
+                    <!-- Action Buttons: Reset & Routes Directory -->
                     <div class="flex items-center gap-1.5">
-                        <button onclick="resetMapFilters()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2 py-1 rounded text-xs transition flex items-center justify-center gap-1" title="Reset Filters">
+                        <button onclick="resetMapFilters()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded text-xs transition border border-slate-300 flex items-center justify-center gap-1 shadow-2xs" title="Reset Filters">
                             <i class="fa-solid fa-arrows-rotate"></i> Reset
                         </button>
-                        <button onclick="openAllRoutesModal()" class="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-1.5 py-1 rounded text-xs transition flex items-center justify-center gap-1 shadow-sm whitespace-nowrap" title="View all routes & villages directory">
+                        <button onclick="openAllRoutesModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center justify-center gap-1 shadow-sm whitespace-nowrap" title="View all routes & villages directory">
                             <i class="fa-solid fa-list-ol"></i> Routes
                         </button>
                     </div>
@@ -2108,22 +2114,18 @@
             if (token !== currentMapFilterToken || !mainRoutesGroup) return;
             if (!roadCoords || roadCoords.length < 2) return;
 
-            const renderer = getRouteCanvasRenderer();
-
-            // Crisp white backing outline for maximum visibility (GPU Canvas accelerated)
+            // Crisp white backing outline for maximum visibility
             const outline = L.polyline(roadCoords, {
-                renderer: renderer,
                 color: '#ffffff',
-                weight: 6.5,
-                opacity: 0.9,
+                weight: 7,
+                opacity: 0.95,
                 interactive: false
             });
 
             // True police patrol red road driving line
             const polyline = L.polyline(roadCoords, {
-                renderer: renderer,
                 color: '#dc2626',
-                weight: 4.5,
+                weight: 5,
                 opacity: 0.95,
                 className: 'cursor-pointer'
             });
