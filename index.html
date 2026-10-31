@@ -486,7 +486,7 @@
                         </div>
 
                         <!-- PS Filter -->
-                        <select id="table-filter-ps" onchange="onTableSearch()" class="border border-slate-300 rounded px-2.5 py-1.5 text-xs bg-white focus:ring-1 focus:ring-blue-500 font-medium">
+                        <select id="table-filter-ps" onchange="onTablePSChange(this.value)" class="border border-slate-300 rounded px-2.5 py-1.5 text-xs bg-white focus:ring-1 focus:ring-blue-500 font-medium">
                             <option value="">-- All Police Stations --</option>
                         </select>
 
@@ -2761,9 +2761,35 @@
             if (clearBtn) clearBtn.classList.add('hidden');
             hideSuggestions('table-psl-suggestions');
             document.getElementById('table-filter-ps').value = '';
-            document.getElementById('table-filter-route').value = '';
             document.getElementById('table-filter-distance').value = '';
             setQuickCategory('');
+            onTablePSChange('');
+        }
+
+        function onTablePSChange(psname) {
+            const routeSelect = document.getElementById('table-filter-route');
+            if (routeSelect) {
+                let optsHtml = '<option value="">-- All Routes --</option>';
+                if (psname) {
+                    const routesInPS = new Set();
+                    allStations.filter(s => (s.psname || '').trim() === psname.trim()).forEach(s => {
+                        if (s.route_no) routesInPS.add(s.route_no.trim());
+                    });
+                    const sorted = Array.from(routesInPS).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                    optsHtml += sorted.map(r => `<option value="${r}">Route - ${r}</option>`).join('');
+                } else {
+                    const allRoutesSet = new Set();
+                    allStations.forEach(s => {
+                        if (s.route_no) allRoutesSet.add(s.route_no.trim());
+                    });
+                    const sorted = Array.from(allRoutesSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                    optsHtml += sorted.map(r => `<option value="${r}">Route - ${r}</option>`).join('');
+                }
+                routeSelect.innerHTML = optsHtml;
+                routeSelect.value = '';
+            }
+            tableCurrentPage = 1;
+            renderTable();
         }
 
         function onTableSearch() {
