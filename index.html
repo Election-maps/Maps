@@ -131,11 +131,11 @@
                     <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="px-3.5 py-1.5 rounded-lg font-bold text-xs bg-blue-600 text-white transition flex items-center gap-1.5 shadow-md hover:bg-blue-500">
                         <i class="fa-solid fa-chart-pie"></i> Dashboard
                     </button>
-                    <button onclick="switchTab('map')" id="tab-btn-map" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
-                        <i class="fa-solid fa-map-location-dot text-amber-400"></i> Live Route Map
-                    </button>
                     <button onclick="switchTab('report')" id="tab-btn-report" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
                         <i class="fa-solid fa-table-list text-cyan-400"></i> Polling Stations Report
+                    </button>
+                    <button onclick="switchTab('map')" id="tab-btn-map" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
+                        <i class="fa-solid fa-map-location-dot text-amber-400"></i> Live Route Map
                     </button>
                     <button onclick="openAddModal()" class="px-3.5 py-1.5 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-plus"></i> Add PS
@@ -455,6 +455,11 @@
                             </div>
                         </div>
 
+                        <!-- Wrap Text Toggle Button -->
+                        <button id="btn-toggle-wrap" onclick="toggleTableWrapText()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow-sm transition" title="Toggle Wrap Text">
+                            <i class="fa-solid fa-align-left"></i> Wrap Text: ON
+                        </button>
+
                         <button onclick="exportToExcel()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow-sm transition">
                             <i class="fa-solid fa-file-excel"></i> Export Excel
                         </button>
@@ -511,7 +516,7 @@
             <!-- Master Data Table with Independent Columns -->
             <div class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
                 <div class="overflow-x-auto max-h-[calc(100vh-280px)]">
-                    <table class="w-full text-left border-collapse text-[11px] whitespace-nowrap" id="polling-master-table">
+                    <table class="w-full text-left border-collapse text-[11px] whitespace-normal break-words" id="polling-master-table">
                         <thead class="bg-slate-900 text-white font-semibold sticky top-0 z-10 shadow" id="master-table-thead">
                             <!-- Populated dynamically with Left (◀) and Right (▶) reordering controls -->
                         </thead>
@@ -2316,14 +2321,14 @@
                 label: 'Name of the Mandal / ZPTC Segment',
                 sortKey: 'mandal_zptc_segment',
                 align: 'text-left',
-                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-medium text-slate-800 col-mandal ${hiddenCls}">${s.mandal_zptc_segment || '-'}</td>`
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-medium text-slate-800 break-words col-mandal ${hiddenCls}">${s.mandal_zptc_segment || '-'}</td>`
             },
             'col-mptc': {
                 key: 'col-mptc',
                 label: 'Name of the MPTC Segment',
                 sortKey: 'mptc_segment',
                 align: 'text-left',
-                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-slate-600 col-mptc ${hiddenCls}">${s.mptc_segment || '-'}</td>`
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-slate-600 break-words col-mptc ${hiddenCls}">${s.mptc_segment || '-'}</td>`
             },
             'col-route': {
                 key: 'col-route',
@@ -2336,25 +2341,25 @@
                 key: 'col-route-incharge',
                 label: 'Route Inchage',
                 align: 'text-left',
-                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 col-route-incharge ${hiddenCls}">${s.route_incharge || '-'}</td>`
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 break-words leading-snug col-route-incharge ${hiddenCls}">${formatPhoneLinks(s.route_incharge) || '-'}</td>`
             },
             'col-striking-incharge': {
                 key: 'col-striking-incharge',
                 label: 'Striking force Incharge',
                 align: 'text-left',
-                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 col-striking-incharge ${hiddenCls}">${s.striking_force_incharge || '-'}</td>`
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 break-words leading-snug col-striking-incharge ${hiddenCls}">${formatPhoneLinks(s.striking_force_incharge) || '-'}</td>`
             },
             'col-special-striking': {
                 key: 'col-special-striking',
                 label: 'Special Stricking force Incharge',
                 align: 'text-left',
-                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 col-special-striking ${hiddenCls}">${s.special_striking_force_incharge || '-'}</td>`
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 break-words leading-snug col-special-striking ${hiddenCls}">${formatPhoneLinks(s.special_striking_force_incharge) || '-'}</td>`
             },
             'col-qrt': {
                 key: 'col-qrt',
                 label: 'QRT',
                 align: 'text-left',
-                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 col-qrt ${hiddenCls}">${s.qrt || '-'}</td>`
+                renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 text-[10px] text-slate-700 break-words leading-snug col-qrt ${hiddenCls}">${formatPhoneLinks(s.qrt) || '-'}</td>`
             },
             'col-psname': {
                 key: 'col-psname',
@@ -2486,6 +2491,31 @@
 
         let tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_KEYS];
         let hiddenTableColumns = new Set();
+        let isTableWrapText = true;
+
+        function toggleTableWrapText() {
+            isTableWrapText = !isTableWrapText;
+            const table = document.getElementById('polling-master-table');
+            const btn = document.getElementById('btn-toggle-wrap');
+            if (table) {
+                if (isTableWrapText) {
+                    table.classList.remove('whitespace-nowrap');
+                    table.classList.add('whitespace-normal', 'break-words');
+                } else {
+                    table.classList.remove('whitespace-normal', 'break-words');
+                    table.classList.add('whitespace-nowrap');
+                }
+            }
+            if (btn) {
+                if (isTableWrapText) {
+                    btn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow-sm transition';
+                    btn.innerHTML = '<i class="fa-solid fa-align-left"></i> Wrap Text: ON';
+                } else {
+                    btn.className = 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow-sm transition';
+                    btn.innerHTML = '<i class="fa-solid fa-align-left"></i> Wrap Text: OFF';
+                }
+            }
+        }
 
         function initTableColumns() {
             try {
