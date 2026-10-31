@@ -1574,7 +1574,7 @@
                     }
 
                     // Lazy Popup Content (created on-demand when marker is clicked)
-                    marker.bindPopup(() => buildStationPopupHtml(s), { maxWidth: 330 });
+                    marker.bindPopup(() => buildStationPopupHtml(s), { maxWidth: 440, minWidth: 320 });
 
                     // Group exclusively for this station's route
                     const rKey = `${s.psname || 'PS'}_${s.route_no || 'R'}`;
@@ -1678,7 +1678,7 @@
                     const fLat = parseFloat(first.latitude);
                     const fLng = parseFloat(first.longitude);
                     if (!isNaN(fLat) && !isNaN(fLng) && mainMap) {
-                        L.popup().setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(first)).openOn(mainMap);
+                        L.popup({ maxWidth: 440, minWidth: 320 }).setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(first)).openOn(mainMap);
                     }
                 }, 350);
             }
@@ -1733,10 +1733,10 @@
             const distDisplay = station.distance_from_ps_kms ? `${station.distance_from_ps_kms} KM` : 'N/A';
 
             return `
-                <div class="p-1 font-sans text-xs">
+                <div class="p-1 font-sans text-xs max-w-[420px]">
                     <div class="flex justify-between items-start gap-1 pb-1.5 border-b mb-1.5">
                         <div>
-                            <span class="text-[10px] font-bold text-slate-500 uppercase">${station.psname || 'Police Station'} PS</span>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase">${station.psname || 'Police Station'} PS ${station.code ? `(Code: ${station.code})` : ''}</span>
                             <h4 class="font-bold text-slate-900 leading-tight">${station.polling_station_location || 'Polling Station'}</h4>
                         </div>
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} shrink-0">${cat}</span>
@@ -1764,17 +1764,34 @@
                         </div>
                     </div>
 
-                    <table class="w-full text-[11px] mb-2 leading-snug">
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500 w-28">Mandal/ZPTC:</td><td class="font-semibold text-slate-800">${station.mandal_zptc_segment || 'N/A'}</td></tr>
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">MPTC Segment:</td><td class="text-slate-800">${station.mptc_segment || 'N/A'}</td></tr>
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Route No:</td><td class="font-bold text-blue-700">Route ${station.route_no || 'N/A'}</td></tr>
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Route Staff:</td><td class="font-semibold text-slate-900">${station.route_staff || 'N/A'}</td></tr>
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">No. of Voters:</td><td class="font-bold text-purple-700">${(parseInt(station.no_of_voters, 10) || 0).toLocaleString()}</td></tr>
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Dist from PS:</td><td class="font-bold text-slate-800">${distDisplay}</td></tr>
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">BLO Contact:</td><td class="font-bold text-emerald-700">${station.blo_contact_no || 'N/A'}</td></tr>
-                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Striking Force:</td><td>${station.asi_hc || 'N/A'} (PC: ${station.pc || 0}, HG: ${station.hg || 0})</td></tr>
-                        <tr><td class="py-0.5 text-slate-500">GPS Coords:</td><td class="text-slate-500 text-[10px] font-mono">${station.latitude}, ${station.longitude}</td></tr>
-                    </table>
+                    <div class="max-h-72 sm:max-h-80 overflow-y-auto pr-1 mb-2 border-t border-b border-slate-200">
+                        <table class="w-full text-[11px] leading-snug">
+                            <tbody>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium w-40 shrink-0 align-top">Name of the Mandal / ZPTC Segment:</td><td class="py-1 font-semibold text-slate-800 break-words">${station.mandal_zptc_segment || 'N/A'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name of the MPTC Segment:</td><td class="py-1 text-slate-800 break-words">${station.mptc_segment || 'N/A'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Route_no:</td><td class="py-1 font-bold text-blue-700">Route ${station.route_no || 'N/A'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Route Inchage:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.route_incharge || station.route_staff || 'N/A')}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Striking force Incharge:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.striking_force_incharge || 'N/A')}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Special Stricking force Incharge:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.special_striking_force_incharge || 'N/A')}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">QRT:</td><td class="py-1 font-semibold text-slate-900 leading-tight break-words">${formatPhoneLinks(station.qrt || 'N/A')}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name of the PS:</td><td class="py-1 font-bold text-slate-900 break-words">${station.psname || 'N/A'} Police Station</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Code:</td><td class="py-1"><span class="font-mono font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300">${station.code || 'N/A'}</span></td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name of the Polling Station Location (PSL):</td><td class="py-1 font-semibold text-blue-950 break-words">${station.polling_station_location || 'N/A'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">No. of Poliing Stations:</td><td class="py-1 font-bold text-slate-800">${station.no_of_polling_stations || '1'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">No. of Voters:</td><td class="py-1 font-bold text-purple-700">${(parseInt(station.no_of_voters, 10) || 0).toLocaleString()}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Name & Contact No. of BLO:</td><td class="py-1 font-bold text-emerald-700 leading-tight break-words">${formatPhoneLinks(station.blo_contact_no || 'N/A')}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Distance from Police Station in KMs:</td><td class="py-1 font-bold text-slate-800">${distDisplay}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE):</td><td class="py-1"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} inline-block">${cat}</span></td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">SI:</td><td class="py-1 font-semibold text-slate-800">${station.si || '0'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">ASI/HC:</td><td class="py-1 font-semibold text-slate-800">${station.asi_hc || '0'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">PC:</td><td class="py-1 font-semibold text-slate-800">${station.pc || '0'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">HG:</td><td class="py-1 font-semibold text-slate-800">${station.hg || '0'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Others:</td><td class="py-1 font-semibold text-slate-800">${station.others || '-'}</td></tr>
+                                <tr class="border-b border-slate-100"><td class="py-1 text-slate-500 font-medium align-top">Latitude:</td><td class="py-1 text-slate-700 font-mono font-semibold">${station.latitude || 'N/A'}</td></tr>
+                                <tr><td class="py-1 text-slate-500 font-medium align-top">Longitude:</td><td class="py-1 text-slate-700 font-mono font-semibold">${station.longitude || 'N/A'}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
 
                     <div class="flex gap-1.5 pt-1 border-t">
                         <a href="${navUrl}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-sm">
@@ -1797,7 +1814,7 @@
                 const st = allStations.find(s => s.id === stationId);
                 if (st) {
                     setTimeout(() => {
-                        L.popup().setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(st)).openOn(mainMap);
+                        L.popup({ maxWidth: 440, minWidth: 320 }).setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(st)).openOn(mainMap);
                     }, 200);
                 }
             }
@@ -2983,9 +3000,9 @@
 
         // Format phone numbers as clickable dial links
         function formatPhoneLinks(rawText) {
-            if (!rawText) return '-';
+            if (!rawText || rawText === 'N/A' || rawText === '-') return rawText || '-';
             // Regex to find 10-digit phone numbers
-            return rawText.replace(/(\b[6-9]\d{9}\b)/g, '<a href="tel:$1" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a>');
+            return rawText.replace(/(\b[6-9]\d{9}\b)/g, '<a href="tel:$1" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a>').replace(/\n/g, '<br>');
         }
 
         function renderTable() {
@@ -3187,7 +3204,7 @@
                 const lng = parseFloat(station.longitude);
                 if (!isNaN(lat) && !isNaN(lng) && mainMap) {
                     mainMap.setView([lat, lng], 15);
-                    L.popup().setLatLng([lat, lng]).setContent(buildStationPopupHtml(station)).openOn(mainMap);
+                    L.popup({ maxWidth: 440, minWidth: 320 }).setLatLng([lat, lng]).setContent(buildStationPopupHtml(station)).openOn(mainMap);
                 }
             }, 300);
         }
@@ -3335,7 +3352,7 @@
                     latlngs.push([lat, lng]);
 
                     const marker = L.marker([lat, lng], { icon: createStationMarkerIcon(cat) }).addTo(routeMap);
-                    marker.bindPopup(buildStationPopupHtml(s), { maxWidth: 320 });
+                    marker.bindPopup(buildStationPopupHtml(s), { maxWidth: 440, minWidth: 320 });
 
                     const loc = s.polling_station_location || `Station #${idx+1}`;
                     marker.bindTooltip(`Station #${idx+1} [${cat}]: ${loc}`, { permanent: false, direction: 'top', className: 'ps-tooltip-badge' });
