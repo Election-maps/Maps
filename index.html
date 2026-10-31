@@ -143,6 +143,9 @@
                     <button onclick="exportToExcel()" class="px-3 py-1.5 rounded-lg font-semibold text-xs bg-teal-700 hover:bg-teal-600 text-white transition flex items-center gap-1.5 shadow-sm" title="Download Excel Report">
                         <i class="fa-solid fa-file-excel"></i> Excel
                     </button>
+                    <button onclick="forceRefreshLatest()" class="px-2.5 py-1.5 rounded-lg text-xs bg-amber-600 hover:bg-amber-500 text-white transition shadow-sm font-semibold flex items-center gap-1" title="తాజా డేటాను రీఫ్రెష్ చేయండి (Force Refresh Latest Version)">
+                        <i class="fa-solid fa-rotate"></i> Sync
+                    </button>
                     <button onclick="openDataModal()" class="px-2.5 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700/60 shadow-sm" title="Data Backup / Restore">
                         <i class="fa-solid fa-database"></i>
                     </button>
@@ -912,6 +915,14 @@
                 </button>
             </div>
             <div class="space-y-3 text-xs">
+                <div class="p-2.5 bg-amber-50 rounded border border-amber-300 space-y-1.5">
+                    <b class="text-amber-900 block text-xs flex items-center gap-1.5"><i class="fa-solid fa-rotate text-amber-700"></i> తాజా వెర్షన్‌ను లోడ్ చేయండి (Sync Latest Version):</b>
+                    <p class="text-slate-700 text-[11px]">వేరే ఫోన్లు లేదా బ్రౌజర్లలో పాత డేటా కనిపిస్తుంటే వెంటనే తాజా వెర్షన్‌ను లోడ్ చేయడానికి ఇక్కడ క్లిక్ చేయండి.</p>
+                    <button onclick="forceRefreshLatest()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded text-xs flex items-center justify-center gap-1.5 transition shadow-sm">
+                        <i class="fa-solid fa-arrows-rotate"></i> Reload & Sync Latest Version
+                    </button>
+                </div>
+
                 <p class="text-slate-600">మీరు నమోదు చేసిన మార్పులు మీ బ్రౌజర్ లోకల్ స్టోరేజ్ (LocalStorage) లో సురక్షితంగా సేవ్ అవుతాయి.</p>
                 
                 <div class="p-2.5 bg-slate-50 rounded border border-slate-200 space-y-2">
@@ -941,9 +952,9 @@
         </div>
     </div>
 
-    <!-- Load Local Stations Dataset & Precomputed Road Routes Geometry -->
-    <script src="data/stations.js"></script>
-    <script defer src="data/routes_geometry.js"></script>
+    <!-- Load Local Stations Dataset & Precomputed Road Routes Geometry with Cache-Busting -->
+    <script src="data/stations.js?v=20261031_v9"></script>
+    <script defer src="data/routes_geometry.js?v=20261031_v9"></script>
 
     <!-- Main Application JavaScript Logic -->
     <script>
@@ -1003,15 +1014,20 @@
 
         // Initialize Data (LocalStorage -> window.INITIAL_STATIONS -> fetch fallback)
         async function initializeDataset() {
-            const DATASET_VERSION = "2026-10-31_v5_pure_excel";
+            const DATASET_VERSION = "2026-10-31_v9_latest";
+            
+            // Check for force-refresh URL params (?v=... or ?update=... or ?refresh=...)
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceRefresh = urlParams.has('v') || urlParams.has('update') || urlParams.has('refresh');
+
             const savedVer = localStorage.getItem('POLICE_ELECTION_DATASET_VERSION');
-            if (savedVer !== DATASET_VERSION) {
+            if (savedVer !== DATASET_VERSION || forceRefresh) {
                 localStorage.removeItem('POLICE_ELECTION_STATIONS_DATA');
                 localStorage.setItem('POLICE_ELECTION_DATASET_VERSION', DATASET_VERSION);
             }
 
             const stored = localStorage.getItem('POLICE_ELECTION_STATIONS_DATA');
-            if (stored) {
+            if (stored && !forceRefresh) {
                 try {
                     allStations = JSON.parse(stored);
                     console.log('Loaded from LocalStorage:', allStations.length);
@@ -1028,7 +1044,7 @@
             }
 
             try {
-                const res = await fetch('data/stations.json');
+                const res = await fetch('data/stations.json?v=' + Date.now());
                 allStations = await res.json();
                 console.log('Loaded from fetch:', allStations.length);
             } catch (err) {
@@ -2530,8 +2546,11 @@
 
         function initTableColumns() {
             try {
-                const COLS_VERSION = "2026-10-31_v5_pure_excel";
-                if (localStorage.getItem('police_election_cols_version') !== COLS_VERSION) {
+                const COLS_VERSION = "2026-10-31_v9_latest";
+                const urlParams = new URLSearchParams(window.location.search);
+                const forceRefresh = urlParams.has('v') || urlParams.has('update') || urlParams.has('refresh');
+
+                if (localStorage.getItem('police_election_cols_version') !== COLS_VERSION || forceRefresh) {
                     localStorage.removeItem('police_election_cols_order');
                     localStorage.removeItem('police_election_cols_hidden');
                     localStorage.setItem('police_election_cols_version', COLS_VERSION);
@@ -3502,6 +3521,15 @@
                 }
             };
             reader.readAsText(fileInput.files[0]);
+        }
+
+        function forceRefreshLatest() {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+            } catch(e) {}
+            const baseUrl = window.location.origin + window.location.pathname;
+            window.location.href = baseUrl + '?v=' + Date.now();
         }
 
         function resetDataToDefault() {
