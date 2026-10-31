@@ -377,7 +377,7 @@
                             <span id="banner-distance-text">Distance: 0.00 KM</span>
                         </div>
                         <span class="text-xs text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 font-medium" id="banner-staff-details">
-                            Incharge: SI / Staff
+                            Route Inchage: -
                         </span>
                         <a id="banner-nav-link" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 transition shadow-sm">
                             <i class="fa-solid fa-diamond-turn-right"></i> Navigate (Google Maps)
@@ -595,10 +595,11 @@
                             </h3>
                             <span id="route-detail-badge" class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">ROUTE -</span>
                         </div>
-                        <div class="text-[11px] space-y-1">
-                            <div class="flex justify-between"><span class="text-slate-500">Route Staff:</span> <b id="route-officer-name" class="text-slate-800">N/A</b></div>
-                            <div class="flex justify-between"><span class="text-slate-500">Phone Contact:</span> <b id="route-officer-ph" class="text-blue-700">N/A</b></div>
-                            <div class="flex justify-between"><span class="text-slate-500">Total Polling Stations:</span> <b id="route-total-stations">0</b></div>
+                        <div class="text-[11px] space-y-1.5">
+                            <div class="flex justify-between items-start gap-2"><span class="text-slate-500 font-semibold shrink-0">Route Inchage:</span> <span id="route-officer-name" class="font-bold text-slate-800 text-right leading-tight">N/A</span></div>
+                            <div class="flex justify-between items-start gap-2"><span class="text-slate-500 font-semibold shrink-0">Striking force Incharge:</span> <span id="route-striking-incharge" class="font-bold text-slate-800 text-right leading-tight">N/A</span></div>
+                            <div class="flex justify-between items-start gap-2"><span class="text-slate-500 font-semibold shrink-0">Special Stricking force  Incharge:</span> <span id="route-special-striking-incharge" class="font-bold text-slate-800 text-right leading-tight">N/A</span></div>
+                            <div class="flex justify-between border-t border-slate-100 pt-1"><span class="text-slate-500">Total Polling Stations:</span> <b id="route-total-stations">0</b></div>
                             <div class="flex justify-between"><span class="text-slate-500">Total Electors / Voters:</span> <b id="route-total-voters">0</b></div>
                             <div class="flex justify-between"><span class="text-slate-500">Calculated Driving Path:</span> <b id="route-total-km" class="text-rose-600">-- km</b></div>
                         </div>
@@ -699,9 +700,19 @@
                         <i class="fa-solid fa-building-shield"></i>
                         <span id="enlarged-route-ps">Police Station</span>
                     </h3>
-                    <div class="text-xs text-rose-100 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-                        <span id="enlarged-route-incharge"><b>Incharge:</b> -</span>
-                        <span id="enlarged-route-phone-container"></span>
+                    <div class="text-xs text-rose-100 mt-2 pt-1.5 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div class="bg-black/25 rounded px-2.5 py-1.5">
+                            <span class="text-[10px] text-amber-300 font-bold block uppercase">Route Inchage</span>
+                            <span id="enlarged-route-incharge" class="font-semibold text-white leading-tight block">-</span>
+                        </div>
+                        <div class="bg-black/25 rounded px-2.5 py-1.5">
+                            <span class="text-[10px] text-amber-300 font-bold block uppercase">Striking force Incharge</span>
+                            <span id="enlarged-striking-incharge" class="font-semibold text-white leading-tight block">-</span>
+                        </div>
+                        <div class="bg-black/25 rounded px-2.5 py-1.5">
+                            <span class="text-[10px] text-amber-300 font-bold block uppercase">Special Stricking force  Incharge</span>
+                            <span id="enlarged-special-striking-incharge" class="font-semibold text-white leading-tight block">-</span>
+                        </div>
                     </div>
                 </div>
                 <button onclick="closeEnlargedRouteModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center transition text-base shrink-0 cursor-pointer" title="Close (Esc)">
@@ -1518,12 +1529,24 @@
                     if (!routeGroups[rKey]) {
                         routeGroups[rKey] = [];
                         routeStaffInfo[rKey] = {
-                            staff: s.route_staff || 'Not Assigned',
+                            route_incharge: s.route_incharge || s.route_staff || '',
+                            striking_force_incharge: s.striking_force_incharge || '',
+                            special_striking_force_incharge: s.special_striking_force_incharge || '',
+                            staff: s.route_incharge || s.route_staff || 'Not Assigned',
                             staff_phone: s.route_staff_ph_no || '',
                             ps: s.psname || '',
                             route: s.route_no || '',
                             stations: []
                         };
+                    }
+                    if (s.route_incharge && !routeStaffInfo[rKey].route_incharge) {
+                        routeStaffInfo[rKey].route_incharge = s.route_incharge;
+                    }
+                    if (s.striking_force_incharge && !routeStaffInfo[rKey].striking_force_incharge) {
+                        routeStaffInfo[rKey].striking_force_incharge = s.striking_force_incharge;
+                    }
+                    if (s.special_striking_force_incharge && !routeStaffInfo[rKey].special_striking_force_incharge) {
+                        routeStaffInfo[rKey].special_striking_force_incharge = s.special_striking_force_incharge;
                     }
                     routeGroups[rKey].push(latLng);
                     routeStaffInfo[rKey].stations.push(s);
@@ -1560,7 +1583,15 @@
                     }
                 }
                 
-                document.getElementById('banner-staff-details').innerText = firstStation.route_staff ? `Incharge: ${firstStation.route_staff}` : 'Police Patrol Route';
+                const bannerParts = [];
+                const rInc = firstStation.route_incharge || firstStation.route_staff;
+                if (rInc) bannerParts.push(`<b>Route Inchage:</b> ${rInc}`);
+                if (firstStation.striking_force_incharge) bannerParts.push(`<b>Striking force Incharge:</b> ${firstStation.striking_force_incharge}`);
+                if (firstStation.special_striking_force_incharge) bannerParts.push(`<b>Special Stricking force  Incharge:</b> ${firstStation.special_striking_force_incharge}`);
+                
+                document.getElementById('banner-staff-details').innerHTML = bannerParts.length > 0 
+                    ? bannerParts.join(' | ') 
+                    : '<b>Route Inchage:</b> Not Assigned';
                 
                 const fLat = parseFloat(firstStation.latitude);
                 const fLng = parseFloat(firstStation.longitude);
@@ -1808,9 +1839,20 @@
                         <h4 class="font-black text-sm text-white flex items-center gap-1.5 leading-tight">
                             <i class="fa-solid fa-building-shield text-xs"></i> ${info.ps} Police Station
                         </h4>
-                        <div class="text-[11px] text-red-100 mt-1 flex items-center justify-between">
-                            <span><b>Incharge:</b> ${info.staff || 'Patrol Officer'}</span>
-                            ${info.staff_phone ? `<a href="tel:${info.staff_phone}" class="bg-white text-red-700 font-bold px-1.5 py-0.2 rounded text-[10px] shadow-xs flex items-center gap-1 hover:bg-red-50"><i class="fa-solid fa-phone text-[8px]"></i> ${info.staff_phone}</a>` : ''}
+                        <!-- 3 Incharge Officers (Route Inchage, Striking force Incharge, Special Stricking force Incharge) -->
+                        <div class="text-[11px] text-red-100 mt-1.5 pt-1.5 border-t border-white/20 space-y-1">
+                            <div class="leading-tight">
+                                <b class="text-amber-300">Route Inchage:</b>
+                                <span class="text-white">${formatPhoneLinks(info.route_incharge || info.staff || 'Not Assigned')}</span>
+                            </div>
+                            <div class="leading-tight">
+                                <b class="text-amber-300">Striking force Incharge:</b>
+                                <span class="text-white">${formatPhoneLinks(info.striking_force_incharge || '-')}</span>
+                            </div>
+                            <div class="leading-tight">
+                                <b class="text-amber-300">Special Stricking force  Incharge:</b>
+                                <span class="text-white">${formatPhoneLinks(info.special_striking_force_incharge || '-')}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -1879,13 +1921,12 @@
             document.getElementById('enlarged-route-tag').innerHTML = `<i class="fa-solid fa-route mr-1"></i> ROUTE ${info.route}`;
             document.getElementById('enlarged-route-dist').innerText = distBadge;
             document.getElementById('enlarged-route-ps').innerText = `${info.ps} Police Station`;
-            document.getElementById('enlarged-route-incharge').innerHTML = `<b>Incharge:</b> ${info.staff || 'Patrol Officer'}`;
-            
-            const phoneContainer = document.getElementById('enlarged-route-phone-container');
-            if (info.staff_phone) {
-                phoneContainer.innerHTML = `<a href="tel:${info.staff_phone}" class="bg-white text-red-700 font-bold px-2 py-0.5 rounded text-xs shadow-xs flex items-center gap-1 hover:bg-red-50"><i class="fa-solid fa-phone text-[10px]"></i> ${info.staff_phone}</a>`;
-            } else {
-                phoneContainer.innerHTML = '';
+            document.getElementById('enlarged-route-incharge').innerHTML = formatPhoneLinks(info.route_incharge || info.staff || 'Not Assigned');
+            if (document.getElementById('enlarged-striking-incharge')) {
+                document.getElementById('enlarged-striking-incharge').innerHTML = formatPhoneLinks(info.striking_force_incharge || '-');
+            }
+            if (document.getElementById('enlarged-special-striking-incharge')) {
+                document.getElementById('enlarged-special-striking-incharge').innerHTML = formatPhoneLinks(info.special_striking_force_incharge || '-');
             }
 
             document.getElementById('enlarged-route-stations-count').innerText = `${stations.length} Stations`;
@@ -2216,7 +2257,11 @@
                                     ROUTE ${info.route}
                                 </span>
                                 <h4 class="font-bold text-slate-900 text-xs">${info.ps} Police Station</h4>
-                                ${info.staff ? `<span class="text-[11px] text-slate-600 font-medium">Incharge: ${info.staff}</span>` : ''}
+                                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-600">
+                                    <span><b>Route Inchage:</b> ${info.route_incharge || info.staff || '-'}</span>
+                                    ${info.striking_force_incharge ? `<span>| <b>Striking force Incharge:</b> ${info.striking_force_incharge}</span>` : ''}
+                                    ${info.special_striking_force_incharge ? `<span>| <b>Special Stricking force  Incharge:</b> ${info.special_striking_force_incharge}</span>` : ''}
+                                </div>
                             </div>
                             <button onclick="selectAndZoomRoute('${info.ps}', '${info.route}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow-sm transition">
                                 <i class="fa-solid fa-map-location-dot"></i> View on Map
@@ -2979,8 +3024,13 @@
             // Update Officer Header Card & Badges
             const firstStation = routeStations[0];
             document.getElementById('route-detail-badge').innerText = `ROUTE - ${selectedRoute} (${selectedPS})`;
-            document.getElementById('route-officer-name').innerText = firstStation.route_staff || 'Not Assigned';
-            document.getElementById('route-officer-ph').innerText = firstStation.route_staff_ph_no || 'N/A';
+            document.getElementById('route-officer-name').innerHTML = formatPhoneLinks(firstStation.route_incharge || firstStation.route_staff || 'Not Assigned');
+            if (document.getElementById('route-striking-incharge')) {
+                document.getElementById('route-striking-incharge').innerHTML = formatPhoneLinks(firstStation.striking_force_incharge || '-');
+            }
+            if (document.getElementById('route-special-striking-incharge')) {
+                document.getElementById('route-special-striking-incharge').innerHTML = formatPhoneLinks(firstStation.special_striking_force_incharge || '-');
+            }
             document.getElementById('route-total-stations').innerText = routeStations.length;
             document.getElementById('route-total-voters').innerText = totalVoters.toLocaleString();
 
