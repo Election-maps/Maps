@@ -2385,7 +2385,7 @@
             },
             'col-location': {
                 key: 'col-location',
-                label: 'Name of the PSL',
+                label: 'Name of the Polling Station Location (PSL)',
                 sortKey: 'polling_station_location',
                 align: 'text-left',
                 renderCell: (s, idx, startIdx, hiddenCls) => `<td class="p-2 font-medium text-slate-800 whitespace-normal leading-snug max-w-sm col-location ${hiddenCls}">${s.polling_station_location || '-'}</td>`
@@ -2490,10 +2490,11 @@
         };
 
         const DEFAULT_TABLE_COLUMNS_KEYS = [
-            'col-sno', 'col-mandal', 'col-mptc', 'col-route', 'col-psname', 
-            'col-code', 'col-location', 'col-voters', 'col-blo', 'col-dist', 'col-cat',
+            'col-sno', 'col-mandal', 'col-mptc', 'col-route',
             'col-route-incharge', 'col-striking-incharge', 'col-special-striking', 'col-qrt',
-            'col-ps-count', 'col-si', 'col-asi-hc', 'col-pc', 'col-hg', 'col-others',
+            'col-psname', 'col-code', 'col-location', 'col-ps-count', 'col-voters',
+            'col-blo', 'col-dist', 'col-cat',
+            'col-si', 'col-asi-hc', 'col-pc', 'col-hg', 'col-others',
             'col-lat', 'col-lng', 'col-actions'
         ];
 
@@ -2529,7 +2530,7 @@
 
         function initTableColumns() {
             try {
-                const COLS_VERSION = "2026-10-31_v5_pure_excel";
+                const COLS_VERSION = "2026-10-31_v10_user_exact_order";
                 if (localStorage.getItem('police_election_cols_version') !== COLS_VERSION) {
                     localStorage.removeItem('police_election_cols_order');
                     localStorage.removeItem('police_election_cols_hidden');
@@ -2542,19 +2543,20 @@
                     DEFAULT_TABLE_COLUMNS_KEYS.forEach(k => {
                         if (!tableColumnsOrder.includes(k)) tableColumnsOrder.push(k);
                     });
+                } else {
+                    tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_KEYS];
                 }
                 const savedHidden = JSON.parse(localStorage.getItem('police_election_cols_hidden'));
                 if (Array.isArray(savedHidden)) {
                     hiddenTableColumns = new Set(savedHidden);
                 } else {
-                    // Default hide unpopulated columns from sheet to keep initial view tidy
-                    hiddenTableColumns = new Set([
-                        'col-route-incharge', 'col-striking-incharge', 'col-special-striking', 
-                        'col-qrt', 'col-ps-count', 'col-si', 'col-asi-hc', 'col-pc', 'col-hg', 'col-others'
-                    ]);
+                    // Show all columns by default matching user requirement
+                    hiddenTableColumns = new Set();
                 }
             } catch (e) {
                 console.error('Error loading columns state:', e);
+                tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_KEYS];
+                hiddenTableColumns = new Set();
             }
             renderTableHeaders();
             renderColumnEditorMenu();
