@@ -2515,6 +2515,8 @@
                     btn.innerHTML = '<i class="fa-solid fa-align-left"></i> Wrap Text: OFF';
                 }
             }
+            renderTableHeaders();
+            renderTable();
         }
 
         function initTableColumns() {
@@ -2651,19 +2653,19 @@
                 const isLast = idx === tableColumnsOrder.length - 1;
 
                 thsHtml += `
-                    <th class="p-2 ${col.align} ${col.key} ${isHidden ? 'hidden' : ''} bg-slate-900 text-white font-semibold sticky top-0 z-10 shadow select-none border-r border-slate-800 last:border-r-0">
+                    <th class="p-2 ${col.align} ${col.key} ${isHidden ? 'hidden' : ''} bg-slate-900 text-white font-semibold sticky top-0 z-10 shadow select-none border-r border-slate-800 last:border-r-0 align-middle">
                         <div class="flex items-center justify-between gap-1 w-full min-w-[70px]">
                             <!-- Move Left Button -->
-                            <button onclick="moveColumnLeft('${col.key}', event)" title="Move column left (◀)" class="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition ${isFirst ? 'opacity-0 pointer-events-none' : 'opacity-80 hover:opacity-100'}">
+                            <button onclick="moveColumnLeft('${col.key}', event)" title="Move column left (◀)" class="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition shrink-0 ${isFirst ? 'opacity-0 pointer-events-none' : 'opacity-80 hover:opacity-100'}">
                                 <i class="fa-solid fa-chevron-left text-[10px]"></i>
                             </button>
                             <!-- Column Title / Sort -->
                             <div class="flex-1 flex items-center justify-center gap-1 cursor-pointer hover:text-blue-300 transition py-0.5 px-0.5" ${col.sortKey ? `onclick="toggleSort('${col.sortKey}')"` : ''}>
-                                <span class="font-bold text-[11px] whitespace-nowrap">${col.label}</span>
-                                ${col.sortKey ? `<span id="sort-icon-${col.sortKey}" class="text-[9px] text-slate-400">↕</span>` : ''}
+                                <span class="font-bold text-[11px] ${isTableWrapText ? 'whitespace-normal break-words leading-tight text-center' : 'whitespace-nowrap'}">${col.label}</span>
+                                ${col.sortKey ? `<span id="sort-icon-${col.sortKey}" class="text-[9px] text-slate-400 shrink-0">↕</span>` : ''}
                             </div>
                             <!-- Move Right Button -->
-                            <button onclick="moveColumnRight('${col.key}', event)" title="Move column right (▶)" class="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition ${isLast ? 'opacity-0 pointer-events-none' : 'opacity-80 hover:opacity-100'}">
+                            <button onclick="moveColumnRight('${col.key}', event)" title="Move column right (▶)" class="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition shrink-0 ${isLast ? 'opacity-0 pointer-events-none' : 'opacity-80 hover:opacity-100'}">
                                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
                             </button>
                         </div>
