@@ -1038,16 +1038,175 @@
             'HYPER SENSITIVE': { bg: '#e11d48', text: '#9f1239', badge: 'bg-rose-100 text-rose-800 border-rose-300', iconUrl: 'HYPER SENSITIVE.jpeg' }
         };
 
+        // ================= POPUP FIELDS VISIBILITY MANAGER =================
+        const POPUP_FIELDS_DEF = [
+            { key: 'mandal', label: 'Name of the Mandal / ZPTC Segment', essential: true },
+            { key: 'mptc', label: 'Name of the MPTC Segment', essential: true },
+            { key: 'route_no', label: 'Route_no', essential: true },
+            { key: 'route_incharge', label: 'Route Inchage', essential: true },
+            { key: 'striking_incharge', label: 'Striking force Incharge', essential: true },
+            { key: 'special_striking', label: 'Special Stricking force Incharge', essential: false },
+            { key: 'qrt', label: 'QRT', essential: false },
+            { key: 'psname', label: 'Name of the PS', essential: true },
+            { key: 'code', label: 'Code', essential: false },
+            { key: 'location', label: 'Name of the Polling Station Location (PSL)', essential: true },
+            { key: 'ps_count', label: 'No. of Poliing Stations', essential: false },
+            { key: 'voters', label: 'No. of Voters', essential: true },
+            { key: 'blo', label: 'Name & Contact No. of BLO', essential: true },
+            { key: 'distance', label: 'Distance from Police Station in KMs', essential: true },
+            { key: 'cat', label: 'Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE)', essential: true },
+            { key: 'si', label: 'SI', essential: false },
+            { key: 'asi_hc', label: 'ASI/HC', essential: false },
+            { key: 'pc', label: 'PC', essential: false },
+            { key: 'hg', label: 'HG', essential: false },
+            { key: 'others', label: 'Others', essential: false },
+            { key: 'lat', label: 'Latitude', essential: true },
+            { key: 'lng', label: 'Longitude', essential: true }
+        ];
+
+        let hiddenPopupFields = new Set();
+        try {
+            const saved = localStorage.getItem('police_election_hidden_popup_fields');
+            if (saved) {
+                hiddenPopupFields = new Set(JSON.parse(saved));
+            }
+        } catch (e) {}
+
+        let currentActiveStation = null;
+
+        function savePopupFieldsState() {
+            try {
+                localStorage.setItem('police_election_hidden_popup_fields', JSON.stringify([...hiddenPopupFields]));
+            } catch (e) {}
+            updatePopupFieldsCount();
+        }
+
+        function updatePopupFieldsCount() {
+            try {
+                if (typeof POPUP_FIELDS_DEF === 'undefined') return;
+                const total = POPUP_FIELDS_DEF.length;
+                const visibleCount = total - (hiddenPopupFields ? hiddenPopupFields.size : 0);
+                const countEl = document.getElementById('popup-fields-count');
+                if (countEl) countEl.innerText = `${visibleCount}/${total}`;
+            } catch (e) {
+                console.warn('Could not update popup fields count:', e);
+            }
+        }
+
+        function togglePopupFieldsMenu(e) {
+            if (e) {
+                e.stopPropagation();
+                if (e.preventDefault) e.preventDefault();
+            }
+            const menu = document.getElementById('popup-fields-menu');
+            if (!menu) return;
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                renderPopupFieldsMenu();
+                menu.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
+
+        // Close popup fields menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('popup-fields-menu');
+            const btn = e.target.closest('#btn-popup-fields');
+            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !btn) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function renderPopupFieldsMenu() {
+            const listEl = document.getElementById('popup-fields-list');
+            if (!listEl) return;
+            let html = '';
+            POPUP_FIELDS_DEF.forEach(field => {
+                const isChecked = !hiddenPopupFields.has(field.key);
+                html += `
+                    <label class="flex items-center justify-between py-1 px-1 hover:bg-slate-50 rounded cursor-pointer text-slate-700 select-none">
+                        <span class="flex items-center gap-2">
+                            <input type="checkbox" onchange="togglePopupField('${field.key}')" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+                            <span class="text-[11px] font-medium leading-tight">${field.label}</span>
+                        </span>
+                        ${field.essential ? '<span class="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-bold shrink-0">Main</span>' : ''}
+                    </label>
+                `;
+            });
+            listEl.innerHTML = html;
+            updatePopupFieldsCount();
+        }
+
+        function togglePopupField(key) {
+            if (hiddenPopupFields.has(key)) {
+                hiddenPopupFields.delete(key);
+            } else {
+                hiddenPopupFields.add(key);
+            }
+            savePopupFieldsState();
+            renderPopupFieldsMenu();
+            refreshActivePopupIfOpen();
+        }
+
+        function setAllPopupFields(showAll) {
+            if (showAll) {
+                hiddenPopupFields.clear();
+            } else {
+                POPUP_FIELDS_DEF.forEach(f => hiddenPopupFields.add(f.key));
+            }
+            savePopupFieldsState();
+            renderPopupFieldsMenu();
+            refreshActivePopupIfOpen();
+        }
+
+        function setEssentialPopupFieldsOnly() {
+            hiddenPopupFields.clear();
+            POPUP_FIELDS_DEF.forEach(f => {
+                if (!f.essential) hiddenPopupFields.add(f.key);
+            });
+            savePopupFieldsState();
+            renderPopupFieldsMenu();
+            refreshActivePopupIfOpen();
+        }
+
+        function resetPopupFieldsVisibility() {
+            hiddenPopupFields.clear();
+            savePopupFieldsState();
+            renderPopupFieldsMenu();
+            refreshActivePopupIfOpen();
+        }
+
+        function refreshActivePopupIfOpen() {
+            if (mainMap && mainMap._popup && mainMap._popup.isOpen() && currentActiveStation) {
+                mainMap._popup.setContent(buildStationPopupHtml(currentActiveStation));
+            }
+        }
+
+        function togglePopupHiddenSection(btn) {
+            const sec = document.getElementById('popup-hidden-section');
+            if (!sec) return;
+            const isHidden = sec.classList.contains('hidden');
+            if (isHidden) {
+                sec.classList.remove('hidden');
+                btn.innerHTML = '<i class="fa-solid fa-eye-slash text-[10px]"></i> <span>- Hide Additional Fields (దాచు)</span>';
+            } else {
+                sec.classList.add('hidden');
+                const count = sec.querySelectorAll('tr').length;
+                btn.innerHTML = `<i class="fa-solid fa-eye text-[10px]"></i> <span>+ Show ${count} Hidden Fields (దాచినవి చూడండి)</span>`;
+            }
+        }
+
         // Initialize App on DOM Ready
         let isMainMapInitialized = false;
         let isTableRendered = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             initTableColumns();
-            updatePopupFieldsCount();
             await initializeDataset();
             renderDashboard();
             populateDropdowns();
+            try { updatePopupFieldsCount(); } catch(e) {}
 
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') {
@@ -1754,160 +1913,6 @@
                 iconAnchor: [17, 42],
                 popupAnchor: [0, -38]
             });
-        }
-
-        // ================= POPUP FIELDS VISIBILITY MANAGER =================
-        const POPUP_FIELDS_DEF = [
-            { key: 'mandal', label: 'Name of the Mandal / ZPTC Segment', essential: true },
-            { key: 'mptc', label: 'Name of the MPTC Segment', essential: true },
-            { key: 'route_no', label: 'Route_no', essential: true },
-            { key: 'route_incharge', label: 'Route Inchage', essential: true },
-            { key: 'striking_incharge', label: 'Striking force Incharge', essential: true },
-            { key: 'special_striking', label: 'Special Stricking force Incharge', essential: false },
-            { key: 'qrt', label: 'QRT', essential: false },
-            { key: 'psname', label: 'Name of the PS', essential: true },
-            { key: 'code', label: 'Code', essential: false },
-            { key: 'location', label: 'Name of the Polling Station Location (PSL)', essential: true },
-            { key: 'ps_count', label: 'No. of Poliing Stations', essential: false },
-            { key: 'voters', label: 'No. of Voters', essential: true },
-            { key: 'blo', label: 'Name & Contact No. of BLO', essential: true },
-            { key: 'distance', label: 'Distance from Police Station in KMs', essential: true },
-            { key: 'cat', label: 'Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE)', essential: true },
-            { key: 'si', label: 'SI', essential: false },
-            { key: 'asi_hc', label: 'ASI/HC', essential: false },
-            { key: 'pc', label: 'PC', essential: false },
-            { key: 'hg', label: 'HG', essential: false },
-            { key: 'others', label: 'Others', essential: false },
-            { key: 'lat', label: 'Latitude', essential: true },
-            { key: 'lng', label: 'Longitude', essential: true }
-        ];
-
-        let hiddenPopupFields = new Set();
-        try {
-            const saved = localStorage.getItem('police_election_hidden_popup_fields');
-            if (saved) {
-                hiddenPopupFields = new Set(JSON.parse(saved));
-            }
-        } catch (e) {}
-
-        let currentActiveStation = null;
-
-        function savePopupFieldsState() {
-            try {
-                localStorage.setItem('police_election_hidden_popup_fields', JSON.stringify([...hiddenPopupFields]));
-            } catch (e) {}
-            updatePopupFieldsCount();
-        }
-
-        function updatePopupFieldsCount() {
-            const total = POPUP_FIELDS_DEF.length;
-            const visibleCount = total - hiddenPopupFields.size;
-            const countEl = document.getElementById('popup-fields-count');
-            if (countEl) countEl.innerText = `${visibleCount}/${total}`;
-        }
-
-        function togglePopupFieldsMenu(e) {
-            if (e) {
-                e.stopPropagation();
-                if (e.preventDefault) e.preventDefault();
-            }
-            const menu = document.getElementById('popup-fields-menu');
-            if (!menu) return;
-            const isHidden = menu.classList.contains('hidden');
-            if (isHidden) {
-                renderPopupFieldsMenu();
-                menu.classList.remove('hidden');
-            } else {
-                menu.classList.add('hidden');
-            }
-        }
-
-        // Close popup fields menu when clicking outside
-        document.addEventListener('click', (e) => {
-            const menu = document.getElementById('popup-fields-menu');
-            const btn = e.target.closest('#btn-popup-fields');
-            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !btn) {
-                menu.classList.add('hidden');
-            }
-        });
-
-        function renderPopupFieldsMenu() {
-            const listEl = document.getElementById('popup-fields-list');
-            if (!listEl) return;
-            let html = '';
-            POPUP_FIELDS_DEF.forEach(field => {
-                const isChecked = !hiddenPopupFields.has(field.key);
-                html += `
-                    <label class="flex items-center justify-between py-1 px-1 hover:bg-slate-50 rounded cursor-pointer text-slate-700 select-none">
-                        <span class="flex items-center gap-2">
-                            <input type="checkbox" onchange="togglePopupField('${field.key}')" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
-                            <span class="text-[11px] font-medium leading-tight">${field.label}</span>
-                        </span>
-                        ${field.essential ? '<span class="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-bold shrink-0">Main</span>' : ''}
-                    </label>
-                `;
-            });
-            listEl.innerHTML = html;
-            updatePopupFieldsCount();
-        }
-
-        function togglePopupField(key) {
-            if (hiddenPopupFields.has(key)) {
-                hiddenPopupFields.delete(key);
-            } else {
-                hiddenPopupFields.add(key);
-            }
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function setAllPopupFields(showAll) {
-            if (showAll) {
-                hiddenPopupFields.clear();
-            } else {
-                POPUP_FIELDS_DEF.forEach(f => hiddenPopupFields.add(f.key));
-            }
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function setEssentialPopupFieldsOnly() {
-            hiddenPopupFields.clear();
-            POPUP_FIELDS_DEF.forEach(f => {
-                if (!f.essential) hiddenPopupFields.add(f.key);
-            });
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function resetPopupFieldsVisibility() {
-            hiddenPopupFields.clear();
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function refreshActivePopupIfOpen() {
-            if (mainMap && mainMap._popup && mainMap._popup.isOpen() && currentActiveStation) {
-                mainMap._popup.setContent(buildStationPopupHtml(currentActiveStation));
-            }
-        }
-
-        function togglePopupHiddenSection(btn) {
-            const sec = document.getElementById('popup-hidden-section');
-            if (!sec) return;
-            const isHidden = sec.classList.contains('hidden');
-            if (isHidden) {
-                sec.classList.remove('hidden');
-                btn.innerHTML = '<i class="fa-solid fa-eye-slash text-[10px]"></i> <span>- Hide Additional Fields (దాచు)</span>';
-            } else {
-                sec.classList.add('hidden');
-                const count = sec.querySelectorAll('tr').length;
-                btn.innerHTML = `<i class="fa-solid fa-eye text-[10px]"></i> <span>+ Show ${count} Hidden Fields (దాచినవి చూడండి)</span>`;
-            }
         }
 
         function buildStationPopupHtml(station) {
