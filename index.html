@@ -340,7 +340,7 @@
                         </label>
                     </div>
 
-                    <!-- Action Buttons: Reset, Routes Directory & Popup Fields Visibility -->
+                    <!-- Action Buttons: Reset & Routes Directory -->
                     <div class="flex items-center gap-1.5">
                         <button onclick="resetMapFilters()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded text-xs transition border border-slate-300 flex items-center justify-center gap-1 shadow-2xs" title="Reset Filters">
                             <i class="fa-solid fa-arrows-rotate"></i> Reset
@@ -348,37 +348,6 @@
                         <button onclick="openAllRoutesModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center justify-center gap-1 shadow-sm whitespace-nowrap" title="View all routes & villages directory">
                             <i class="fa-solid fa-list-ol"></i> Routes
                         </button>
-
-                        <!-- Popup Fields Visibility Editor Menu -->
-                        <div class="relative inline-block text-left">
-                            <button id="btn-popup-fields" onclick="togglePopupFieldsMenu(event)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-bold px-2.5 py-1.5 rounded text-xs border border-indigo-300 flex items-center gap-1.5 transition shadow-2xs whitespace-nowrap" title="Customize which fields to show or hide in popup">
-                                <i class="fa-solid fa-sliders text-indigo-600"></i> Popup Fields (<span id="popup-fields-count">22/22</span>) <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                            </button>
-                            <div id="popup-fields-menu" class="hidden absolute right-0 sm:right-auto sm:left-0 mt-1.5 w-80 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1500] p-3 text-xs space-y-2">
-                                <div class="font-bold text-slate-800 border-b pb-1.5 flex justify-between items-center">
-                                    <span class="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                                        <i class="fa-solid fa-sliders text-indigo-600"></i> Popup Fields (చూపించు / దాచు)
-                                    </span>
-                                    <button onclick="resetPopupFieldsVisibility()" class="text-[10px] text-blue-600 hover:underline font-bold">
-                                        <i class="fa-solid fa-rotate-left"></i> Reset All
-                                    </button>
-                                </div>
-                                <div class="flex gap-2 text-[10px]">
-                                    <button onclick="setAllPopupFields(true)" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-1 rounded border border-slate-300 transition">
-                                        Select All (అన్నీ)
-                                    </button>
-                                    <button onclick="setEssentialPopupFieldsOnly()" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-1 rounded border border-indigo-200 transition">
-                                        Essential Only (ముఖ్యమైనవి)
-                                    </button>
-                                </div>
-                                <p class="text-[10px] text-slate-500 leading-tight">
-                                    అవసరం లేని ఫీల్డ్‌లను అన్‌చెక్ చేయండి, అవి పాపప్‌లో హైడ్ అవుతాయి:
-                                </p>
-                                <div class="space-y-1 max-h-72 overflow-y-auto pr-1 divide-y divide-slate-100" id="popup-fields-list">
-                                    <!-- Populated dynamically -->
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -1038,165 +1007,6 @@
             'HYPER SENSITIVE': { bg: '#e11d48', text: '#9f1239', badge: 'bg-rose-100 text-rose-800 border-rose-300', iconUrl: 'HYPER SENSITIVE.jpeg' }
         };
 
-        // ================= POPUP FIELDS VISIBILITY MANAGER =================
-        const POPUP_FIELDS_DEF = [
-            { key: 'mandal', label: 'Name of the Mandal / ZPTC Segment', essential: true },
-            { key: 'mptc', label: 'Name of the MPTC Segment', essential: true },
-            { key: 'route_no', label: 'Route_no', essential: true },
-            { key: 'route_incharge', label: 'Route Inchage', essential: true },
-            { key: 'striking_incharge', label: 'Striking force Incharge', essential: true },
-            { key: 'special_striking', label: 'Special Stricking force Incharge', essential: false },
-            { key: 'qrt', label: 'QRT', essential: false },
-            { key: 'psname', label: 'Name of the PS', essential: true },
-            { key: 'code', label: 'Code', essential: false },
-            { key: 'location', label: 'Name of the Polling Station Location (PSL)', essential: true },
-            { key: 'ps_count', label: 'No. of Poliing Stations', essential: false },
-            { key: 'voters', label: 'No. of Voters', essential: true },
-            { key: 'blo', label: 'Name & Contact No. of BLO', essential: true },
-            { key: 'distance', label: 'Distance from Police Station in KMs', essential: true },
-            { key: 'cat', label: 'Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE)', essential: true },
-            { key: 'si', label: 'SI', essential: false },
-            { key: 'asi_hc', label: 'ASI/HC', essential: false },
-            { key: 'pc', label: 'PC', essential: false },
-            { key: 'hg', label: 'HG', essential: false },
-            { key: 'others', label: 'Others', essential: false },
-            { key: 'lat', label: 'Latitude', essential: true },
-            { key: 'lng', label: 'Longitude', essential: true }
-        ];
-
-        let hiddenPopupFields = new Set();
-        try {
-            const saved = localStorage.getItem('police_election_hidden_popup_fields');
-            if (saved) {
-                hiddenPopupFields = new Set(JSON.parse(saved));
-            }
-        } catch (e) {}
-
-        let currentActiveStation = null;
-
-        function savePopupFieldsState() {
-            try {
-                localStorage.setItem('police_election_hidden_popup_fields', JSON.stringify([...hiddenPopupFields]));
-            } catch (e) {}
-            updatePopupFieldsCount();
-        }
-
-        function updatePopupFieldsCount() {
-            try {
-                if (typeof POPUP_FIELDS_DEF === 'undefined') return;
-                const total = POPUP_FIELDS_DEF.length;
-                const visibleCount = total - (hiddenPopupFields ? hiddenPopupFields.size : 0);
-                const countEl = document.getElementById('popup-fields-count');
-                if (countEl) countEl.innerText = `${visibleCount}/${total}`;
-            } catch (e) {
-                console.warn('Could not update popup fields count:', e);
-            }
-        }
-
-        function togglePopupFieldsMenu(e) {
-            if (e) {
-                e.stopPropagation();
-                if (e.preventDefault) e.preventDefault();
-            }
-            const menu = document.getElementById('popup-fields-menu');
-            if (!menu) return;
-            const isHidden = menu.classList.contains('hidden');
-            if (isHidden) {
-                renderPopupFieldsMenu();
-                menu.classList.remove('hidden');
-            } else {
-                menu.classList.add('hidden');
-            }
-        }
-
-        // Close popup fields menu when clicking outside
-        document.addEventListener('click', (e) => {
-            const menu = document.getElementById('popup-fields-menu');
-            const btn = e.target.closest('#btn-popup-fields');
-            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !btn) {
-                menu.classList.add('hidden');
-            }
-        });
-
-        function renderPopupFieldsMenu() {
-            const listEl = document.getElementById('popup-fields-list');
-            if (!listEl) return;
-            let html = '';
-            POPUP_FIELDS_DEF.forEach(field => {
-                const isChecked = !hiddenPopupFields.has(field.key);
-                html += `
-                    <label class="flex items-center justify-between py-1 px-1 hover:bg-slate-50 rounded cursor-pointer text-slate-700 select-none">
-                        <span class="flex items-center gap-2">
-                            <input type="checkbox" onchange="togglePopupField('${field.key}')" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
-                            <span class="text-[11px] font-medium leading-tight">${field.label}</span>
-                        </span>
-                        ${field.essential ? '<span class="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-bold shrink-0">Main</span>' : ''}
-                    </label>
-                `;
-            });
-            listEl.innerHTML = html;
-            updatePopupFieldsCount();
-        }
-
-        function togglePopupField(key) {
-            if (hiddenPopupFields.has(key)) {
-                hiddenPopupFields.delete(key);
-            } else {
-                hiddenPopupFields.add(key);
-            }
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function setAllPopupFields(showAll) {
-            if (showAll) {
-                hiddenPopupFields.clear();
-            } else {
-                POPUP_FIELDS_DEF.forEach(f => hiddenPopupFields.add(f.key));
-            }
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function setEssentialPopupFieldsOnly() {
-            hiddenPopupFields.clear();
-            POPUP_FIELDS_DEF.forEach(f => {
-                if (!f.essential) hiddenPopupFields.add(f.key);
-            });
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function resetPopupFieldsVisibility() {
-            hiddenPopupFields.clear();
-            savePopupFieldsState();
-            renderPopupFieldsMenu();
-            refreshActivePopupIfOpen();
-        }
-
-        function refreshActivePopupIfOpen() {
-            if (mainMap && mainMap._popup && mainMap._popup.isOpen() && currentActiveStation) {
-                mainMap._popup.setContent(buildStationPopupHtml(currentActiveStation));
-            }
-        }
-
-        function togglePopupHiddenSection(btn) {
-            const sec = document.getElementById('popup-hidden-section');
-            if (!sec) return;
-            const isHidden = sec.classList.contains('hidden');
-            if (isHidden) {
-                sec.classList.remove('hidden');
-                btn.innerHTML = '<i class="fa-solid fa-eye-slash text-[10px]"></i> <span>- Hide Additional Fields (దాచు)</span>';
-            } else {
-                sec.classList.add('hidden');
-                const count = sec.querySelectorAll('tr').length;
-                btn.innerHTML = `<i class="fa-solid fa-eye text-[10px]"></i> <span>+ Show ${count} Hidden Fields (దాచినవి చూడండి)</span>`;
-            }
-        }
-
         // Initialize App on DOM Ready
         let isMainMapInitialized = false;
         let isTableRendered = false;
@@ -1206,7 +1016,6 @@
             await initializeDataset();
             renderDashboard();
             populateDropdowns();
-            try { updatePopupFieldsCount(); } catch(e) {}
 
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') {
@@ -1765,7 +1574,7 @@
                     }
 
                     // Lazy Popup Content (created on-demand when marker is clicked)
-                    marker.bindPopup(() => buildStationPopupHtml(s), { maxWidth: 420, minWidth: 320 });
+                    marker.bindPopup(() => buildStationPopupHtml(s), { maxWidth: 330 });
 
                     // Group exclusively for this station's route
                     const rKey = `${s.psname || 'PS'}_${s.route_no || 'R'}`;
@@ -1869,7 +1678,7 @@
                     const fLat = parseFloat(first.latitude);
                     const fLng = parseFloat(first.longitude);
                     if (!isNaN(fLat) && !isNaN(fLng) && mainMap) {
-                        L.popup({ maxWidth: 420, minWidth: 320 }).setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(first)).openOn(mainMap);
+                        L.popup().setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(first)).openOn(mainMap);
                     }
                 }, 350);
             }
@@ -1916,7 +1725,6 @@
         }
 
         function buildStationPopupHtml(station) {
-            currentActiveStation = station;
             const cat = (station.categorization || 'NORMAL').trim().toUpperCase();
             const badgeClass = SENSITIVITY_COLORS[cat]?.badge || 'bg-slate-100 text-slate-800';
             const lat = parseFloat(station.latitude);
@@ -1924,61 +1732,14 @@
             const navUrl = (!isNaN(lat) && !isNaN(lng)) ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : '#';
             const distDisplay = station.distance_from_ps_kms ? `${station.distance_from_ps_kms} KM` : 'N/A';
 
-            let visibleRowsHtml = '';
-            let hiddenRowsHtml = '';
-            let hiddenCount = 0;
-
-            const renderRow = (key, label, valHtml) => {
-                const rowHtml = `
-                    <tr class="border-b border-slate-100">
-                        <td class="py-1 text-slate-600 font-semibold w-48 shrink-0 align-top">${label}:</td>
-                        <td class="py-1 font-semibold text-slate-800 break-words">${valHtml}</td>
-                    </tr>
-                `;
-                if (hiddenPopupFields.has(key)) {
-                    hiddenRowsHtml += rowHtml;
-                    hiddenCount++;
-                } else {
-                    visibleRowsHtml += rowHtml;
-                }
-            };
-
-            renderRow('mandal', 'Name of the Mandal / ZPTC Segment', station.mandal_zptc_segment || 'N/A');
-            renderRow('mptc', 'Name of the MPTC Segment', station.mptc_segment || 'N/A');
-            renderRow('route_no', 'Route_no', `<span class="font-bold text-blue-700">Route ${station.route_no || 'N/A'}</span>`);
-            renderRow('route_incharge', 'Route Inchage', `<span class="text-slate-900 leading-tight">${formatPhoneLinks(station.route_incharge || station.route_staff || 'N/A')}</span>`);
-            renderRow('striking_incharge', 'Striking force Incharge', `<span class="text-slate-900 leading-tight">${formatPhoneLinks(station.striking_force_incharge || 'N/A')}</span>`);
-            renderRow('special_striking', 'Special Stricking force Incharge', `<span class="text-slate-900 leading-tight">${formatPhoneLinks(station.special_striking_force_incharge || 'N/A')}</span>`);
-            renderRow('qrt', 'QRT', `<span class="text-slate-900 leading-tight">${formatPhoneLinks(station.qrt || 'N/A')}</span>`);
-            renderRow('psname', 'Name of the PS', `<span class="font-bold text-slate-900">${station.psname || 'N/A'} Police Station</span>`);
-            renderRow('code', 'Code', `<span class="font-mono font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300">${station.code || 'N/A'}</span>`);
-            renderRow('location', 'Name of the Polling Station Location (PSL)', `<span class="font-semibold text-blue-950">${station.polling_station_location || 'N/A'}</span>`);
-            renderRow('ps_count', 'No. of Poliing Stations', station.no_of_polling_stations || '1');
-            renderRow('voters', 'No. of Voters', `<span class="font-bold text-purple-700">${(parseInt(station.no_of_voters, 10) || 0).toLocaleString()}</span>`);
-            renderRow('blo', 'Name & Contact No. of BLO', `<span class="font-bold text-emerald-700 leading-tight">${formatPhoneLinks(station.blo_contact_no || 'N/A')}</span>`);
-            renderRow('distance', 'Distance from Police Station in KMs', `<span class="font-bold text-slate-800">${station.distance_from_ps_kms ? station.distance_from_ps_kms + ' KM' : 'N/A'}</span>`);
-            renderRow('cat', 'Sensitivity (NORMAL / SENSITIVE / CRITICAL / HYPER SENSITIVE)', `<span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass} inline-block">${cat}</span>`);
-            renderRow('si', 'SI', station.si || '0');
-            renderRow('asi_hc', 'ASI/HC', station.asi_hc || '0');
-            renderRow('pc', 'PC', station.pc || '0');
-            renderRow('hg', 'HG', station.hg || '0');
-            renderRow('others', 'Others', station.others || '-');
-            renderRow('lat', 'Latitude', `<span class="text-slate-700 font-mono font-semibold">${station.latitude || 'N/A'}</span>`);
-            renderRow('lng', 'Longitude', `<span class="text-slate-700 font-mono font-semibold">${station.longitude || 'N/A'}</span>`);
-
             return `
-                <div class="p-1 font-sans text-xs max-w-[400px]">
+                <div class="p-1 font-sans text-xs">
                     <div class="flex justify-between items-start gap-1 pb-1.5 border-b mb-1.5">
                         <div>
-                            <span class="text-[10px] font-bold text-slate-500 uppercase">${station.psname || 'Police Station'} PS ${station.code ? `(Code: ${station.code})` : ''}</span>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase">${station.psname || 'Police Station'} PS</span>
                             <h4 class="font-bold text-slate-900 leading-tight">${station.polling_station_location || 'Polling Station'}</h4>
                         </div>
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass}">${cat}</span>
-                            <button type="button" onclick="togglePopupFieldsMenu(event)" title="Choose which fields to show or hide" class="text-slate-400 hover:text-indigo-600 hover:bg-slate-100 p-1 rounded transition text-xs" title="Filter Visible Fields">
-                                <i class="fa-solid fa-sliders"></i>
-                            </button>
-                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass} shrink-0">${cat}</span>
                     </div>
 
                     <!-- Prominent Travel Route Card (From Police Station to Polling Station) -->
@@ -2003,39 +1764,17 @@
                         </div>
                     </div>
 
-                    <div class="max-h-72 sm:max-h-80 overflow-y-auto pr-1 mb-2 border-t border-b border-slate-200">
-                        <table class="w-full text-[11px] leading-snug">
-                            ${visibleRowsHtml || '<tr><td colspan="2" class="p-3 text-center text-slate-500 italic">అన్ని వివరాలు హైడ్ చేయబడ్డాయి. కింద బటన్ క్లిక్ చేసి చూడవచ్చు.</td></tr>'}
-                        </table>
-
-                        ${hiddenCount > 0 ? `
-                            <div class="pt-1.5 pb-0.5 border-t border-dashed border-slate-300 flex items-center justify-between text-[11px]">
-                                <button type="button" onclick="togglePopupHiddenSection(this)" class="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer">
-                                    <i class="fa-solid fa-eye text-[10px]"></i> <span>+ Show ${hiddenCount} Hidden Fields (దాచినవి చూడండి)</span>
-                                </button>
-                                <button type="button" onclick="togglePopupFieldsMenu(event)" class="text-slate-500 hover:text-slate-800 text-[10px] flex items-center gap-1 cursor-pointer">
-                                    <i class="fa-solid fa-sliders"></i> Edit Fields
-                                </button>
-                            </div>
-                            <div id="popup-hidden-section" class="hidden pt-1">
-                                <table class="w-full text-[11px] leading-snug bg-slate-50/70 rounded p-1">
-                                    ${hiddenRowsHtml}
-                                </table>
-                            </div>
-                        ` : ''}
-                    </div>
-
-                    <div class="flex gap-1.5 pt-1 border-t">
-                        <a href="${navUrl}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-sm">
-                            <i class="fa-solid fa-diamond-turn-right"></i> Navigate (Google Maps)
-                        </a>
-                        <button onclick="openEditModal(${station.id})" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-sm">
-                            <i class="fa-solid fa-pen-to-square"></i> Edit Details
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
+                    <table class="w-full text-[11px] mb-2 leading-snug">
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500 w-28">Mandal/ZPTC:</td><td class="font-semibold text-slate-800">${station.mandal_zptc_segment || 'N/A'}</td></tr>
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">MPTC Segment:</td><td class="text-slate-800">${station.mptc_segment || 'N/A'}</td></tr>
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Route No:</td><td class="font-bold text-blue-700">Route ${station.route_no || 'N/A'}</td></tr>
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Route Staff:</td><td class="font-semibold text-slate-900">${station.route_staff || 'N/A'}</td></tr>
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">No. of Voters:</td><td class="font-bold text-purple-700">${(parseInt(station.no_of_voters, 10) || 0).toLocaleString()}</td></tr>
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Dist from PS:</td><td class="font-bold text-slate-800">${distDisplay}</td></tr>
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">BLO Contact:</td><td class="font-bold text-emerald-700">${station.blo_contact_no || 'N/A'}</td></tr>
+                        <tr class="border-b border-slate-100"><td class="py-0.5 text-slate-500">Striking Force:</td><td>${station.asi_hc || 'N/A'} (PC: ${station.pc || 0}, HG: ${station.hg || 0})</td></tr>
+                        <tr><td class="py-0.5 text-slate-500">GPS Coords:</td><td class="text-slate-500 text-[10px] font-mono">${station.latitude}, ${station.longitude}</td></tr>
+                    </table>
 
                     <div class="flex gap-1.5 pt-1 border-t">
                         <a href="${navUrl}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-sm">
@@ -2058,7 +1797,7 @@
                 const st = allStations.find(s => s.id === stationId);
                 if (st) {
                     setTimeout(() => {
-                        L.popup({ maxWidth: 420, minWidth: 320 }).setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(st)).openOn(mainMap);
+                        L.popup().setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(st)).openOn(mainMap);
                     }, 200);
                 }
             }
@@ -3244,10 +2983,9 @@
 
         // Format phone numbers as clickable dial links
         function formatPhoneLinks(rawText) {
-            if (!rawText || rawText === 'N/A' || rawText === '-') return rawText || '-';
+            if (!rawText) return '-';
             // Regex to find 10-digit phone numbers
-            const formatted = String(rawText).replace(/(\b[6-9]\d{9}\b)/g, '<a href="tel:$1" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a>');
-            return formatted.replace(/\n/g, '<br>');
+            return rawText.replace(/(\b[6-9]\d{9}\b)/g, '<a href="tel:$1" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a>');
         }
 
         function renderTable() {
@@ -3449,7 +3187,7 @@
                 const lng = parseFloat(station.longitude);
                 if (!isNaN(lat) && !isNaN(lng) && mainMap) {
                     mainMap.setView([lat, lng], 15);
-                    L.popup({ maxWidth: 420, minWidth: 320 }).setLatLng([lat, lng]).setContent(buildStationPopupHtml(station)).openOn(mainMap);
+                    L.popup().setLatLng([lat, lng]).setContent(buildStationPopupHtml(station)).openOn(mainMap);
                 }
             }, 300);
         }
@@ -3597,7 +3335,7 @@
                     latlngs.push([lat, lng]);
 
                     const marker = L.marker([lat, lng], { icon: createStationMarkerIcon(cat) }).addTo(routeMap);
-                    marker.bindPopup(buildStationPopupHtml(s), { maxWidth: 420, minWidth: 320 });
+                    marker.bindPopup(buildStationPopupHtml(s), { maxWidth: 320 });
 
                     const loc = s.polling_station_location || `Station #${idx+1}`;
                     marker.bindTooltip(`Station #${idx+1} [${cat}]: ${loc}`, { permanent: false, direction: 'top', className: 'ps-tooltip-badge' });
