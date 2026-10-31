@@ -314,12 +314,14 @@
                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                             <i class="fa-solid fa-magnifying-glass text-blue-600 mr-0.5"></i> Search Village / School
                         </label>
-                        <div class="relative">
-                            <input type="text" id="map-search-text" list="all-locations-datalist" oninput="applyMapFilters()" placeholder="Type village (e.g. Gokarnapuram)..." class="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 pr-6 bg-white">
-                            <datalist id="all-locations-datalist"></datalist>
-                            <button type="button" onclick="clearMapSearch()" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs" title="Clear">
+                        <div class="relative w-60 sm:w-64" id="map-search-container">
+                            <input type="text" id="map-search-text" oninput="onMapSearchInput(this.value)" onfocus="onMapSearchFocus()" placeholder="Type PSL (e.g. MPP School)..." autocomplete="off" class="w-full border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 pr-6 bg-white">
+                            <button type="button" onclick="clearMapSearch()" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer" title="Clear">
                                 <i class="fa-solid fa-xmark"></i>
                             </button>
+                            <!-- Automatic PSL Dropdown Suggestions on Map -->
+                            <div id="map-psl-suggestions" class="hidden absolute left-0 right-0 top-full mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-2xl z-[1500] max-h-72 overflow-y-auto divide-y divide-slate-100">
+                            </div>
                         </div>
                     </div>
 
@@ -472,10 +474,16 @@
                 <!-- Row 2: Search Input, Dropdowns, and Dynamic Record Stats -->
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex flex-wrap items-center gap-2 flex-1">
-                        <!-- Search Box -->
-                        <div class="relative w-64">
-                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400"></i>
-                            <input type="text" id="table-search-input" oninput="onTableSearch()" placeholder="Search PS, School, SI, BLO..." class="w-full border border-slate-300 rounded pl-8 pr-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+                        <!-- Search Box with Automatic PSL List Dropdown Suggestions -->
+                        <div class="relative w-72 sm:w-80" id="table-search-container">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                            <input type="text" id="table-search-input" oninput="onTableSearchInput(this.value)" onfocus="onTableSearchFocus()" placeholder="Search Name of the PSL, School, Village..." autocomplete="off" class="w-full border border-slate-300 rounded-lg pl-8 pr-7 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 bg-white shadow-xs">
+                            <button type="button" id="table-search-clear" onclick="clearTableSearch()" class="hidden absolute right-2 top-2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer" title="Clear Search">
+                                <i class="fa-solid fa-circle-xmark"></i>
+                            </button>
+                            <!-- Automatic PSL Dropdown Suggestions -->
+                            <div id="table-psl-suggestions" class="hidden absolute left-0 right-0 top-full mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-2xl z-[1500] max-h-72 overflow-y-auto divide-y divide-slate-100">
+                            </div>
                         </div>
 
                         <!-- PS Filter -->
@@ -1148,6 +1156,7 @@
         function clearMapSearch() {
             const input = document.getElementById('map-search-text');
             if (input) input.value = '';
+            hideSuggestions('map-psl-suggestions');
             applyMapFilters();
         }
 
@@ -2747,6 +2756,9 @@
 
         function resetTableFilters() {
             document.getElementById('table-search-input').value = '';
+            const clearBtn = document.getElementById('table-search-clear');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            hideSuggestions('table-psl-suggestions');
             document.getElementById('table-filter-ps').value = '';
             document.getElementById('table-filter-route').value = '';
             document.getElementById('table-filter-distance').value = '';
@@ -2757,6 +2769,150 @@
             tableCurrentPage = 1;
             renderTable();
         }
+
+        // ================= PSL AUTOMATIC SUGGESTIONS (TABLE & MAP) =================
+        function onTableSearchInput(query) {
+            const clearBtn = document.getElementById('table-search-clear');
+            if (clearBtn) {
+                if (query && query.trim().length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+            onTableSearch();
+            renderPslSuggestions(query, 'table-psl-suggestions', 'selectPslSuggestion');
+        }
+
+        function clearTableSearch() {
+            const input = document.getElementById('table-search-input');
+            if (input) input.value = '';
+            const clearBtn = document.getElementById('table-search-clear');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            hideSuggestions('table-psl-suggestions');
+            onTableSearch();
+        }
+
+        function onTableSearchFocus() {
+            const input = document.getElementById('table-search-input');
+            if (input && input.value.trim().length > 0) {
+                renderPslSuggestions(input.value, 'table-psl-suggestions', 'selectPslSuggestion');
+            }
+        }
+
+        function selectPslSuggestion(pslName) {
+            const input = document.getElementById('table-search-input');
+            if (input) {
+                input.value = pslName;
+                const clearBtn = document.getElementById('table-search-clear');
+                if (clearBtn) clearBtn.classList.remove('hidden');
+            }
+            hideSuggestions('table-psl-suggestions');
+            onTableSearch();
+        }
+
+        function onMapSearchInput(query) {
+            applyMapFilters();
+            renderPslSuggestions(query, 'map-psl-suggestions', 'selectMapPslSuggestion');
+        }
+
+        function onMapSearchFocus() {
+            const input = document.getElementById('map-search-text');
+            if (input && input.value.trim().length > 0) {
+                renderPslSuggestions(input.value, 'map-psl-suggestions', 'selectMapPslSuggestion');
+            }
+        }
+
+        function selectMapPslSuggestion(pslName) {
+            const input = document.getElementById('map-search-text');
+            if (input) input.value = pslName;
+            hideSuggestions('map-psl-suggestions');
+            applyMapFilters();
+        }
+
+        function hideSuggestions(boxId) {
+            const box = document.getElementById(boxId);
+            if (box) box.classList.add('hidden');
+        }
+
+        function renderPslSuggestions(query, boxId, selectFnName) {
+            const box = document.getElementById(boxId);
+            if (!box) return;
+
+            const q = (query || '').trim().toLowerCase();
+            if (!q || q.length < 1) {
+                box.classList.add('hidden');
+                box.innerHTML = '';
+                return;
+            }
+
+            const matches = [];
+            const seenPsl = new Set();
+
+            for (let i = 0; i < allStations.length; i++) {
+                const s = allStations[i];
+                const psl = (s.polling_station_location || '').trim();
+                if (!psl) continue;
+
+                const pslLower = psl.toLowerCase();
+                if (pslLower.includes(q) && !seenPsl.has(pslLower)) {
+                    seenPsl.add(pslLower);
+                    matches.push({
+                        psl: psl,
+                        psname: s.psname || '',
+                        route_no: s.route_no || '',
+                        voters: s.no_of_voters || 0,
+                        code: s.code || ''
+                    });
+                    if (matches.length >= 30) break;
+                }
+            }
+
+            if (matches.length === 0) {
+                box.innerHTML = `<div class="p-2.5 text-center text-xs text-slate-400">మ్యాచింగ్ PSL కనుగొనబడలేదు (No matching PSL found)</div>`;
+                box.classList.remove('hidden');
+                return;
+            }
+
+            const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapeRegex(q)})`, 'gi');
+
+            let html = `<div class="px-2.5 py-1.5 bg-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-600 uppercase flex justify-between items-center sticky top-0 z-10 shadow-xs">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-list-check text-blue-600"></i> Name of the PSL (${matches.length})</span>
+                <span class="text-[9px] text-slate-400">క్లిక్ చేయండి (Click to Select)</span>
+            </div>`;
+
+            matches.forEach(m => {
+                const highlightedPsl = m.psl.replace(regex, '<mark class="bg-amber-200 text-slate-900 font-bold px-0.5 rounded">$1</mark>');
+                const safePsl = m.psl.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                html += `
+                    <div onclick="${selectFnName}('${safePsl}')" class="p-2 hover:bg-blue-50 cursor-pointer transition text-left group border-b border-slate-100 last:border-b-0">
+                        <div class="font-semibold text-xs text-slate-800 group-hover:text-blue-700 leading-tight">
+                            <i class="fa-solid fa-school text-slate-400 group-hover:text-blue-500 mr-1 text-[10px]"></i>
+                            ${highlightedPsl}
+                        </div>
+                        <div class="text-[10px] text-slate-500 mt-1 flex flex-wrap items-center gap-2">
+                            <span class="font-bold text-slate-700">${m.psname} PS</span>
+                            <span>•</span>
+                            <span class="bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-semibold text-[9px]">Route ${m.route_no}</span>
+                            ${m.code ? `<span>•</span><span class="font-mono text-[9px] text-slate-600">Code: ${m.code}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            box.innerHTML = html;
+            box.classList.remove('hidden');
+        }
+
+        // Close PSL suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            const tableContainer = document.getElementById('table-search-container');
+            if (tableContainer && !tableContainer.contains(e.target)) {
+                hideSuggestions('table-psl-suggestions');
+            }
+            const mapContainer = document.getElementById('map-search-container');
+            if (mapContainer && !mapContainer.contains(e.target)) {
+                hideSuggestions('map-psl-suggestions');
+            }
+        });
 
         function changePageSize(val) {
             tablePageSize = val === 'all' ? 999999 : parseInt(val, 10);
