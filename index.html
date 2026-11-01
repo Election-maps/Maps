@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,11 +11,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <!-- Leaflet CSS & JS (Deferred for fast mobile rendering) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
+        .radar-pulse {
+            animation: radarPulse 1.8s infinite ease-out;
+        }
+        @keyframes radarPulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
         .ps-tooltip-badge {
             background-color: rgba(255, 255, 255, 0.96);
             border: 1px solid #2563eb;
@@ -135,6 +144,10 @@
                     </button>
                     <button onclick="switchTab('map')" id="tab-btn-map" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
                         <i class="fa-solid fa-map-location-dot text-amber-400"></i> Live Route Map
+                    </button>
+                    <button onclick="switchTab('livelocation')" id="tab-btn-livelocation" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm relative">
+                        <i class="fa-solid fa-satellite-dish text-emerald-400"></i> Live Location
+                        <span id="nav-live-count-badge" class="hidden ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500 text-white animate-pulse">0</span>
                     </button>
                     <button onclick="openAddModal()" class="px-3.5 py-1.5 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-plus"></i> Add PS
@@ -405,6 +418,129 @@
                     <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-orange-500 text-white font-black text-[9px] flex items-center justify-center shadow-sm">C</span> Critical Polling Station</div>
                     <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-rose-600 text-white font-black text-[9px] flex items-center justify-center shadow-sm">H</span> Hyper Sensitive Polling Station</div>
                     <div class="flex items-center gap-1.5"><span class="w-4 h-1 bg-red-600 inline-block border-t border-b border-white"></span> Police Patrol Road Route</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: LIVE LOCATION (LIVE ROUTE MAP WITH REAL-TIME GPS TRACKING) ================= -->
+        <section id="tab-livelocation" class="hidden space-y-2">
+            <div class="bg-white p-2.5 rounded-lg shadow-sm border border-slate-200">
+                <!-- Map Filter Bar (Identical layout to Live Route Map + WhatsApp Integration) -->
+                <div class="flex flex-wrap items-end gap-2.5">
+                    <!-- Police Station Filter -->
+                    <div class="flex-1 min-w-[140px] max-w-xs">
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Police Station</label>
+                        <select id="live-filter-psname" onchange="onLiveMapPSChange(this.value)" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white font-medium">
+                            <option value="">-- All Police Stations --</option>
+                        </select>
+                    </div>
+
+                    <!-- Route No Filter -->
+                    <div class="w-28 sm:w-32 min-w-[100px]">
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Route No</label>
+                        <select id="live-filter-route" onchange="applyLiveMapFilters()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white font-medium">
+                            <option value="">-- All Routes --</option>
+                        </select>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="w-28 sm:w-32 min-w-[100px]">
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Category</label>
+                        <select id="live-filter-category" onchange="applyLiveMapFilters()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+                            <option value="">-- All Categories --</option>
+                            <option value="NORMAL">Normal</option>
+                            <option value="SENSITIVE">Sensitive</option>
+                            <option value="CRITICAL">Critical</option>
+                            <option value="HYPER SENSITIVE">Hyper Sensitive</option>
+                        </select>
+                    </div>
+
+                    <!-- Search PSL / Village -->
+                    <div class="flex-1 min-w-[170px] max-w-sm">
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                            <i class="fa-solid fa-magnifying-glass text-blue-600 mr-0.5"></i> Search Village / School
+                        </label>
+                        <div class="relative w-full">
+                            <input type="text" id="live-search-text" oninput="applyLiveMapFilters()" placeholder="Type PSL (e.g. MPP School)..." autocomplete="off" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+                        </div>
+                    </div>
+
+                    <!-- Map Layers & Visibility Toggles -->
+                    <div class="flex items-center gap-1.5">
+                        <label class="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 border border-rose-300 rounded text-rose-900 font-bold text-xs cursor-pointer hover:bg-rose-100 transition shadow-2xs select-none">
+                            <input type="checkbox" id="live-toggle-routes" checked onchange="toggleLiveRoadRoutes(this.checked)" class="w-3.5 h-3.5 rounded text-rose-600 focus:ring-rose-500 cursor-pointer">
+                            <span><i class="fa-solid fa-route text-rose-600 mr-0.5"></i> Road Routes</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-slate-700 font-semibold text-xs cursor-pointer hover:bg-slate-100 transition shadow-2xs select-none">
+                            <input type="checkbox" id="live-toggle-borders" checked onchange="toggleLiveBorders(this.checked)" class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+                            <span>Borders</span>
+                        </label>
+                    </div>
+
+                    <!-- Action Buttons: Reset & WhatsApp Group Sharing -->
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="resetLiveMapFilters()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded text-xs transition border border-slate-300 flex items-center justify-center gap-1 shadow-2xs" title="Reset Filters">
+                            <i class="fa-solid fa-arrows-rotate"></i> Reset
+                        </button>
+                        <button type="button" onclick="shareToWhatsAppGroup()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center gap-1.5 shadow-sm whitespace-nowrap cursor-pointer" title="Share GPS broadcast link to WhatsApp Group">
+                            <i class="fa-brands fa-whatsapp text-sm"></i> Share WhatsApp Link
+                        </button>
+                        <button type="button" onclick="copyWhatsAppLink()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-2.5 py-1.5 rounded text-xs transition border border-slate-700 shadow-2xs cursor-pointer" title="Copy GPS Tracker Link">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full-Height Map Container (Identical to Live Route Map) -->
+            <div class="relative w-full h-[calc(100vh-175px)] min-h-[500px] rounded-lg shadow-md border border-slate-200 overflow-hidden bg-slate-200">
+                <div id="live-map" class="w-full h-full"></div>
+
+                <!-- Floating Top-Right: Active Officers Online Pill & Drawer -->
+                <div class="absolute top-3 right-3 z-[1000] flex flex-col items-end">
+                    <button type="button" onclick="toggleLiveOfficersDrawer()" class="bg-white/95 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-slate-200 text-xs font-bold text-slate-800 flex items-center gap-2 hover:bg-white transition cursor-pointer">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        <img src="police_officer.png" class="w-5 h-5 rounded-full border border-blue-500 object-cover object-top" alt="Officer" />
+                        <span><b id="live-badge-count" class="text-blue-700">0</b> Officers Online</span>
+                        <i id="live-drawer-arrow" class="fa-solid fa-chevron-down text-slate-400 text-[10px] ml-0.5 transition-transform"></i>
+                    </button>
+
+                    <!-- Expandable Drawer List of Online Officers -->
+                    <div id="live-officers-drawer" class="hidden mt-2 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-2xl p-2.5 w-72 max-h-80 overflow-y-auto space-y-2">
+                        <div class="flex items-center justify-between pb-1.5 border-b border-slate-200 text-[11px] font-bold text-slate-700">
+                            <span><i class="fa-solid fa-satellite-dish text-emerald-600 mr-1"></i> Live Patrol Officers</span>
+                            <span class="text-[10px] font-mono text-emerald-600 font-semibold">HiveMQ Live</span>
+                        </div>
+                        <div id="live-officers-list" class="space-y-1.5">
+                            <div class="text-center py-4 text-slate-400 text-xs">
+                                <div>No officers online currently.</div>
+                                <div class="text-[10px] text-slate-500 mt-1">Click Share WhatsApp Link above to start tracking.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Map Legend -->
+                <div class="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm p-2 rounded-lg shadow-lg border border-slate-200 text-[10px] space-y-1">
+                    <div class="font-bold text-slate-700 border-b pb-0.5 mb-1 flex items-center justify-between gap-3">
+                        <span><i class="fa-solid fa-layer-group text-blue-600"></i> PS & Live Patrol</span>
+                        <span id="live-legend-total-shown" class="font-bold text-blue-700">All Stations</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block border border-white shadow-2xs"></span> Normal</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block border border-white shadow-2xs"></span> Sensitive</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-500 inline-block border border-white shadow-2xs"></span> Critical</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-600 inline-block border border-white shadow-2xs"></span> Hyper Sensitive</div>
+                    </div>
+                    <div class="pt-1 border-t border-slate-200 space-y-1">
+                        <div class="flex items-center gap-1.5 font-bold text-slate-900">
+                            <img src="police_officer.png" class="w-4 h-4 rounded-full border border-blue-600 object-cover object-top" alt="Police" />
+                            <span>Live Police Officer (Radar Pulse)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-slate-600">
+                            <span class="w-4 h-0.5 bg-rose-600 inline-block"></span> Patrol Road Route
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1040,7 +1176,7 @@
 
         // Initialize Data (LocalStorage -> window.INITIAL_STATIONS -> fetch fallback)
         async function initializeDataset() {
-            const DATASET_VERSION = "2026-11-01_v14_standard";
+            const DATASET_VERSION = "2026-11-01_v15_live_location";
             const savedVer = localStorage.getItem('POLICE_ELECTION_DATASET_VERSION');
             if (savedVer !== DATASET_VERSION) {
                 localStorage.removeItem('POLICE_ELECTION_STATIONS_DATA');
@@ -1084,7 +1220,7 @@
 
         // Tab Switching Logic
         function switchTab(tabId) {
-            ['dashboard', 'map', 'report', 'routewise'].forEach(t => {
+            ['dashboard', 'map', 'report', 'routewise', 'livelocation'].forEach(t => {
                 const el = document.getElementById(`tab-${t}`);
                 const btn = document.getElementById(`tab-btn-${t}`);
                 if (el) {
@@ -1110,6 +1246,15 @@
                         if (mainMap) mainMap.invalidateSize();
                     }, 50);
                 }
+            } else if (tabId === 'livelocation') {
+                if (!isLiveMapInitialized) {
+                    initLiveMapLazy();
+                } else {
+                    setTimeout(() => {
+                        if (liveMap) liveMap.invalidateSize();
+                    }, 50);
+                }
+                initOfficerMQTTTracking();
             } else if (tabId === 'routewise') {
                 setTimeout(() => {
                     initRouteMap();
@@ -1153,6 +1298,12 @@
             if (tableRouteSelect) {
                 tableRouteSelect.innerHTML = '<option value="">-- All Routes --</option>' + sortedRoutes.map(r => `<option value="${r}">Route - ${r}</option>`).join('');
             }
+
+            // Populate Live Location Map Dropdowns
+            const livePsSelect = document.getElementById('live-filter-psname');
+            if (livePsSelect) livePsSelect.innerHTML = '<option value="">-- All Police Stations --</option>' + psOptions;
+            const liveRouteSelect = document.getElementById('live-filter-route');
+            if (liveRouteSelect) liveRouteSelect.innerHTML = '<option value="">-- All Routes --</option>' + sortedRoutes.map(r => `<option value="${r}">Route ${r}</option>`).join('');
 
             // Populate Location & Village Datalist for Search Autocomplete
             const datalist = document.getElementById('all-locations-datalist');
@@ -3994,6 +4145,481 @@
             XLSX.utils.book_append_sheet(wb, ws, "Polling Stations");
             XLSX.writeFile(wb, `Election_Polling_Stations_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
+        // =========================================================================
+        // ================= LIVE LOCATION MAP & OFFICER TRACKING LOGIC ============
+        // =========================================================================
+        let liveMap = null;
+        let isLiveMapInitialized = false;
+        let liveMarkersGroup = null;
+        let liveRoutesGroup = null;
+        let liveOfficersGroup = null;
+        let liveMandalBoundariesLayer = null;
+        let liveOfficersMap = {};
+        let controlMqttClient = null;
+        let currentLiveFilterToken = 0;
+
+        function initLiveMapLazy() {
+            if (isLiveMapInitialized) return;
+            if (typeof L === 'undefined') {
+                setTimeout(initLiveMapLazy, 80);
+                return;
+            }
+            isLiveMapInitialized = true;
+            initLiveMap();
+        }
+
+        function initLiveMap() {
+            if (liveMap) return;
+
+            // Initialize Map Centered on Srikakulam District
+            liveMap = L.map('live-map').setView([18.3, 83.9], 10);
+
+            // Base Layers
+            const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(liveMap);
+
+            const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Satellite'
+            });
+
+            const cartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; CARTO'
+            });
+
+            L.control.layers({
+                "OpenStreetMap": osm,
+                "Google Satellite Hybrid": googleHybrid,
+                "Carto Light Clean": cartoLight
+            }, null, { position: 'topright' }).addTo(liveMap);
+
+            liveMarkersGroup = L.layerGroup().addTo(liveMap);
+            liveRoutesGroup = L.layerGroup().addTo(liveMap);
+            liveOfficersGroup = L.layerGroup().addTo(liveMap);
+
+            // Load Mandal Boundaries
+            loadLiveMandalBoundaries();
+
+            // Populate live dropdowns
+            populateDropdowns();
+
+            // Render all stations and routes initially
+            applyLiveMapFilters();
+        }
+
+        async function loadLiveMandalBoundaries() {
+            if (liveMandalBoundariesLayer || typeof omnivore === 'undefined') return;
+            try {
+                const res = await fetch('BORDERSKL-Mandals.kmz');
+                if (!res.ok) return;
+                const arrayBuffer = await res.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                const kmlFileName = Object.keys(zip.files).find(n => n.toLowerCase().endsWith('.kml'));
+                if (!kmlFileName) return;
+                const kmlText = await zip.files[kmlFileName].async('string');
+                liveMandalBoundariesLayer = omnivore.kml.parse(kmlText, null, L.geoJson(null, {
+                    style: function () {
+                        return { color: '#0369a1', weight: 1.5, opacity: 0.65, fillOpacity: 0.02 };
+                    }
+                }));
+                if (document.getElementById('live-toggle-borders')?.checked) {
+                    liveMandalBoundariesLayer.addTo(liveMap);
+                }
+            } catch(e) {
+                console.warn('Could not load KMZ in Live Location map:', e);
+            }
+        }
+
+        function onLiveMapPSChange(psVal) {
+            const routeSelect = document.getElementById('live-filter-route');
+            if (routeSelect) {
+                if (!psVal) {
+                    const routeSet = new Set();
+                    allStations.forEach(s => { if (s.route_no) routeSet.add(s.route_no.trim()); });
+                    const sortedRoutes = Array.from(routeSet).sort();
+                    routeSelect.innerHTML = '<option value="">-- All Routes --</option>' + sortedRoutes.map(r => `<option value="${r}">Route ${r}</option>`).join('');
+                } else {
+                    const rSet = new Set();
+                    allStations.forEach(s => {
+                        if ((s.psname || '').trim() === psVal.trim() && s.route_no) rSet.add(s.route_no.trim());
+                    });
+                    const sortedR = Array.from(rSet).sort();
+                    routeSelect.innerHTML = '<option value="">-- All Routes in ' + psVal + ' --</option>' + sortedR.map(r => `<option value="${r}">Route ${r}</option>`).join('');
+                }
+            }
+            applyLiveMapFilters();
+        }
+
+        function applyLiveMapFilters() {
+            if (!liveMap) return;
+            const thisToken = ++currentLiveFilterToken;
+
+            const selectedPS = (document.getElementById('live-filter-psname')?.value || '').trim();
+            const selectedRoute = (document.getElementById('live-filter-route')?.value || '').trim();
+            const selectedCat = (document.getElementById('live-filter-category')?.value || '').trim();
+            const searchText = (document.getElementById('live-search-text')?.value || '').trim();
+
+            if (liveMarkersGroup) liveMarkersGroup.clearLayers();
+            if (liveRoutesGroup) liveRoutesGroup.clearLayers();
+
+            const filteredStations = allStations.filter(s => {
+                if (selectedPS && (s.psname || '').trim() !== selectedPS) return false;
+                if (selectedRoute && (s.route_no || '').trim() !== selectedRoute) return false;
+                if (selectedCat && (s.categorization || 'NORMAL').trim().toUpperCase() !== selectedCat) return false;
+                if (searchText && !matchStationLocationSearch(s, searchText)) return false;
+                return true;
+            });
+
+            const legendEl = document.getElementById('live-legend-total-shown');
+            if (legendEl) legendEl.innerText = `${filteredStations.length} Shown`;
+
+            const bounds = [];
+            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            const routeGroups = {};
+
+            filteredStations.forEach(s => {
+                const lat = parseFloat(s.latitude);
+                const lng = parseFloat(s.longitude);
+                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+
+                const latlng = [lat, lng];
+                bounds.push(latlng);
+
+                // Group by route for drawing road polylines
+                const rKey = (s.psname || 'Unknown') + '__' + (s.route_no || 'Unknown');
+                if (!routeGroups[rKey]) routeGroups[rKey] = [];
+                routeGroups[rKey].push(s);
+
+                // Marker creation
+                const marker = L.marker(latlng, { icon: createStationIcon(s) });
+
+                // Interactive popups & tooltips
+                const cat = (s.categorization || 'NORMAL').trim().toUpperCase();
+                const colors = { 'NORMAL': '#16a34a', 'SENSITIVE': '#d97706', 'CRITICAL': '#ea580c', 'HYPER SENSITIVE': '#dc2626' };
+                const color = colors[cat] || '#2563eb';
+
+                const tooltipHtml = `
+                    <div style="font-family: inherit; font-size: 11px; font-weight: 700; color: #0f172a; line-height: 1.25;">
+                        <span style="color: ${color}; font-weight: 800;">${escapeHtml(s.psname || '')} &bull; Route ${escapeHtml(s.route_no || '')}</span><br>
+                        ${escapeHtml(s.psl_name || s.village_ward || 'Polling Station')}
+                    </div>
+                `;
+                marker.bindTooltip(tooltipHtml, { permanent: false, direction: 'top', offset: [0, -38], className: 'ps-tooltip-badge' });
+
+                const popupHtml = `
+                    <div class="p-1 font-sans text-xs min-w-[260px]">
+                        <div class="flex items-center justify-between pb-1.5 border-b mb-1.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-2xs" style="background-color: ${color};">${cat}</span>
+                            <span class="text-[10px] text-slate-500 font-mono">PS NO: <b>${s.ps_no || '-'}</b></span>
+                        </div>
+                        <div class="font-bold text-slate-900 text-sm mb-1">${escapeHtml(s.psl_name || s.village_ward || '')}</div>
+                        <div class="text-slate-600 space-y-0.5 mb-2 text-[11px]">
+                            <div><b>PS:</b> <span class="text-blue-700 font-semibold">${escapeHtml(s.psname || '-')}</span></div>
+                            <div><b>Route:</b> <span class="text-purple-700 font-semibold">Route ${escapeHtml(s.route_no || '-')}</span></div>
+                            <div><b>Location:</b> ${escapeHtml(s.village_ward || '')}, ${escapeHtml(s.mandal || '')}</div>
+                        </div>
+                        <div class="flex gap-1 pt-1.5 border-t">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
+                                <i class="fa-solid fa-diamond-turn-right"></i> Navigate
+                            </a>
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupHtml);
+
+                if (!isTouchDevice) {
+                    marker.on('mouseover', function () { this.openTooltip(); });
+                    marker.on('mouseout', function () { this.closeTooltip(); });
+                }
+
+                liveMarkersGroup.addLayer(marker);
+            });
+
+            // Draw Road Route polylines
+            if (document.getElementById('live-toggle-routes')?.checked) {
+                Object.keys(routeGroups).forEach(rKey => {
+                    const stns = routeGroups[rKey];
+                    if (stns.length < 2) return;
+                    const coords = stns.map(s => [parseFloat(s.latitude), parseFloat(s.longitude)]).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
+                    if (coords.length < 2) return;
+                    const outline = L.polyline(coords, { color: '#ffffff', weight: 6, opacity: 0.9 });
+                    const polyline = L.polyline(coords, { color: '#dc2626', weight: 3.5, opacity: 0.85, dashArray: '8, 6' });
+                    liveRoutesGroup.addLayer(outline);
+                    liveRoutesGroup.addLayer(polyline);
+                });
+            }
+
+            // Also update live officer markers visibility based on selected PS
+            renderLiveOfficersOnMap();
+
+            if (bounds.length > 0 && (selectedPS || selectedRoute || searchText)) {
+                liveMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+            }
+        }
+
+        function toggleLiveRoadRoutes(checked) {
+            if (checked) {
+                applyLiveMapFilters();
+            } else if (liveRoutesGroup) {
+                liveRoutesGroup.clearLayers();
+            }
+        }
+
+        function toggleLiveBorders(checked) {
+            if (!liveMap) return;
+            if (checked) {
+                if (liveMandalBoundariesLayer) liveMandalBoundariesLayer.addTo(liveMap);
+                else loadLiveMandalBoundaries();
+            } else if (liveMandalBoundariesLayer) {
+                liveMap.removeLayer(liveMandalBoundariesLayer);
+            }
+        }
+
+        function resetLiveMapFilters() {
+            const ps = document.getElementById('live-filter-psname');
+            const route = document.getElementById('live-filter-route');
+            const cat = document.getElementById('live-filter-category');
+            const search = document.getElementById('live-search-text');
+            if (ps) ps.value = '';
+            if (route) route.value = '';
+            if (cat) cat.value = '';
+            if (search) search.value = '';
+            onLiveMapPSChange('');
+            if (liveMap) liveMap.setView([18.3, 83.9], 10);
+        }
+
+        // ================= MQTT REAL-TIME GPS TRACKING =================
+        function initOfficerMQTTTracking() {
+            if (controlMqttClient && controlMqttClient.isConnected()) return;
+            const clientId = 'Control_' + Math.random().toString(16).substr(2, 6);
+            controlMqttClient = new Paho.MQTT.Client('broker.hivemq.com', 8884, clientId);
+
+            controlMqttClient.onConnectionLost = function (responseObject) {
+                console.warn('Live MQTT Connection lost:', responseObject.errorMessage);
+                setTimeout(initOfficerMQTTTracking, 5000);
+            };
+
+            controlMqttClient.onMessageArrived = function (message) {
+                try {
+                    const data = JSON.parse(message.payloadString);
+                    onLiveOfficerLocationReceived(data);
+                } catch(e) {
+                    console.error('Error parsing live officer GPS message:', e);
+                }
+            };
+
+            controlMqttClient.connect({
+                useSSL: true,
+                timeout: 6,
+                keepAliveInterval: 30,
+                cleanSession: true,
+                onSuccess: function () {
+                    console.log('Connected to HiveMQ Live Officer GPS Stream!');
+                    controlMqttClient.subscribe('election_maps_skl/officers/#', { qos: 0 });
+                },
+                onFailure: function (err) {
+                    console.warn('HiveMQ SSL failed, trying EMQX fallback...', err);
+                    controlMqttClient = new Paho.MQTT.Client('broker.emqx.io', 8084, clientId);
+                    controlMqttClient.connect({
+                        useSSL: true,
+                        timeout: 6,
+                        keepAliveInterval: 30,
+                        cleanSession: true,
+                        onSuccess: function () {
+                            controlMqttClient.subscribe('election_maps_skl/officers/#', { qos: 0 });
+                        }
+                    });
+                }
+            });
+        }
+
+        function onLiveOfficerLocationReceived(d) {
+            if (!d || !d.id || !d.lat || !d.lng) return;
+            liveOfficersMap[d.id] = { data: d, lastSeen: Date.now() };
+            updateLiveOfficersBadge();
+            renderLiveOfficersOnMap();
+            updateLiveOfficersList();
+        }
+
+        function renderLiveOfficersOnMap() {
+            if (!liveMap || !liveOfficersGroup) return;
+            liveOfficersGroup.clearLayers();
+
+            const selectedPS = (document.getElementById('live-filter-psname')?.value || '').trim();
+            const keys = Object.keys(liveOfficersMap);
+
+            keys.forEach(id => {
+                const item = liveOfficersMap[id];
+                const d = item.data;
+                if (selectedPS && (d.ps || '').trim() !== selectedPS) return;
+
+                const lat = parseFloat(d.lat);
+                const lng = parseFloat(d.lng);
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                const timeStr = new Date(d.timestamp || item.lastSeen).toLocaleTimeString();
+
+                const icon = L.divIcon({
+                    className: 'custom-officer-pin',
+                    html: `
+                        <div class="radar-pulse" style="position: relative; width: 50px; height: 50px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(15,23,42,0.45); border: 2.5px solid #1e3a8a;">
+                            <img src="police_officer.png" alt="Police Officer" style="width: 42px; height: 42px; object-fit: cover; object-position: top center; border-radius: 50%;" />
+                            <span style="position: absolute; bottom: -2px; right: -2px; width: 17px; height: 17px; border-radius: 50%; background: #16a34a; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </span>
+                        </div>
+                    `,
+                    iconSize: [50, 50],
+                    iconAnchor: [25, 25],
+                    popupAnchor: [0, -26]
+                });
+
+                const popupHtml = `
+                    <div class="p-1 font-sans text-xs min-w-[260px]">
+                        <div class="flex items-center justify-between pb-1.5 border-b mb-1.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> LIVE GPS ACTIVE
+                            </span>
+                            <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+                        </div>
+                        <div class="space-y-1 mb-2">
+                            <div class="flex items-center gap-2">
+                                <img src="police_officer.png" style="width: 36px; height: 36px; object-fit: cover; object-position: top center; border-radius: 50%; border: 2px solid #3b82f6; background: #ffffff; padding: 1px;" alt="Police Officer" />
+                                <div>
+                                    <div class="font-bold text-slate-900 text-sm leading-tight">${escapeHtml(d.name || 'Police Officer')}</div>
+                                    <div class="text-[10px] text-blue-700 font-semibold">${escapeHtml(d.ps || 'PS')} &bull; Route ${escapeHtml(d.route || '-')}</div>
+                                </div>
+                            </div>
+                            <div class="text-[11px] text-slate-700"><b>Phone:</b> <a href="tel:${d.phone}" class="text-blue-600 font-semibold underline">${escapeHtml(d.phone || '-')}</a></div>
+                            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-600">
+                                <span><b>Speed:</b> <b class="text-blue-700">${d.speed || 0} km/h</b></span>
+                                <span><b>Accuracy:</b> <b class="text-emerald-700">&plusmn;${d.accuracy || 0} m</b></span>
+                            </div>
+                        </div>
+                        <div class="flex gap-1 pt-1 border-t">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
+                                <i class="fa-solid fa-diamond-turn-right"></i> Navigate
+                            </a>
+                            <a href="tel:${d.phone}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2.5 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
+                                <i class="fa-solid fa-phone"></i> Call
+                            </a>
+                        </div>
+                    </div>
+                `;
+
+                const m = L.marker([lat, lng], { icon: icon }).bindPopup(popupHtml);
+                liveOfficersGroup.addLayer(m);
+            });
+        }
+
+        function updateLiveOfficersBadge() {
+            const count = Object.keys(liveOfficersMap).length;
+            const navBadge = document.getElementById('nav-live-count-badge');
+            if (navBadge) {
+                navBadge.innerText = count;
+                if (count > 0) navBadge.classList.remove('hidden');
+                else navBadge.classList.add('hidden');
+            }
+            const mapBadge = document.getElementById('live-badge-count');
+            if (mapBadge) mapBadge.innerText = count;
+        }
+
+        function updateLiveOfficersList() {
+            const listEl = document.getElementById('live-officers-list');
+            if (!listEl) return;
+
+            const keys = Object.keys(liveOfficersMap);
+            if (keys.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-4 text-slate-400 text-xs">
+                        <div>No officers online currently.</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Click Share WhatsApp Link above to start tracking.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            keys.forEach(id => {
+                const item = liveOfficersMap[id];
+                const d = item.data;
+                const timeStr = new Date(d.timestamp || item.lastSeen).toLocaleTimeString();
+                html += `
+                    <div class="bg-slate-50 hover:bg-blue-50/60 p-2 rounded-lg border border-slate-200 text-xs space-y-1 transition">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <img src="police_officer.png" class="w-6 h-6 rounded-full border border-blue-500 object-cover object-top" alt="Police" />
+                                <div>
+                                    <div class="font-bold text-slate-900 leading-tight">${escapeHtml(d.name || 'Officer')}</div>
+                                    <div class="text-[10px] text-blue-700">${escapeHtml(d.ps || '')} &bull; Route ${escapeHtml(d.route || '-')}</div>
+                                </div>
+                            </div>
+                            <span class="text-[9px] font-mono text-slate-400 bg-white px-1 py-0.5 rounded border border-slate-200">${timeStr}</span>
+                        </div>
+                        <div class="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                            <span>Speed: <b class="text-blue-700">${d.speed || 0} km/h</b></span>
+                            <div class="flex gap-1">
+                                <button type="button" onclick="locateOfficerOnLiveMap('' + id + '')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-0.5 rounded text-[10px] shadow-2xs cursor-pointer">
+                                    <i class="fa-solid fa-crosshairs"></i> Locate
+                                </button>
+                                <a href="tel:${d.phone}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-0.5 rounded text-[10px] shadow-2xs">
+                                    <i class="fa-solid fa-phone"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
+        }
+
+        function toggleLiveOfficersDrawer() {
+            const drawer = document.getElementById('live-officers-drawer');
+            const arrow = document.getElementById('live-drawer-arrow');
+            if (drawer) {
+                drawer.classList.toggle('hidden');
+                if (arrow) arrow.classList.toggle('rotate-180');
+            }
+        }
+
+        function locateOfficerOnLiveMap(id) {
+            const item = liveOfficersMap[id];
+            if (!item || !liveMap) return;
+            const lat = parseFloat(item.data.lat);
+            const lng = parseFloat(item.data.lng);
+            if (isNaN(lat) || isNaN(lng)) return;
+            liveMap.setView([lat, lng], 16);
+        }
+
+        function getLiveTrackerLink() {
+            const currentUrl = window.location.href.split('?')[0].split('#')[0];
+            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+            return `${baseUrl}track.html`;
+        }
+
+        function shareToWhatsAppGroup() {
+            const trackUrl = getLiveTrackerLink();
+            const msg = encodeURIComponent("Sir/Madam, AP Police Election Duty Live GPS Tracking:\n\u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C08 \u0C15\u0C4D\u0C30\u0C3F\u0C02\u0C26\u0C3F \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C2A\u0C48 \u0C15\u0C4D\u0C32\u0C3F\u0C15\u0C4D \u0C1A\u0C47\u0C38\u0C3F 'START LIVE GPS' \u0C28\u0C4A\u0C15\u0C4D\u0C15\u0C02\u0C21\u0C3F. \u0C2E\u0C40 \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C15\u0C02\u0C1F\u0C4D\u0C30\u0C4B\u0C32\u0C4D \u0C30\u0C42\u0C2E\u0C4D \u0C32\u0C48\u0C35\u0C4D \u0C2E\u0C4D\u0C2F\u0C3E\u0C2A\u0C4D \u0C32\u0C4B \u0C15\u0C28\u0C3F\u0C2A\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C02\u0C26\u0C3F:\n" + trackUrl);
+            window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+        }
+
+        function copyWhatsAppLink() {
+            const trackUrl = getLiveTrackerLink();
+            const textToCopy = `Sir/Madam, AP Police Election Duty Live GPS Tracking:\n\u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C08 \u0C15\u0C4D\u0C30\u0C3F\u0C02\u0C26\u0C3F \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C2A\u0C48 \u0C15\u0C4D\u0C32\u0C3F\u0C15\u0C4D \u0C1A\u0C47\u0C38\u0C3F 'START LIVE GPS' \u0C28\u0C4A\u0C15\u0C4D\u0C15\u0C02\u0C21\u0C3F. \u0C2E\u0C40 \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C15\u0C02\u0C1F\u0C4D\u0C30\u0C4B\u0C32\u0C4D \u0C30\u0C42\u0C2E\u0C4D \u0C32\u0C48\u0C35\u0C4D \u0C2E\u0C4D\u0C2F\u0C3E\u0C2A\u0C4D \u0C32\u0C4B \u0C15\u0C28\u0C3F\u0C2A\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C02\u0C26\u0C3F:\n${trackUrl}`;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    alert('WhatsApp \u0C17\u0C4D\u0C30\u0C42\u0C2A\u0C4D \u0C32\u0C4B \u0C37\u0C47\u0C30\u0C4D \u0C1A\u0C47\u0C2F\u0C21\u0C3E\u0C28\u0C3F\u0C15\u0C3F \u0C1F\u0C4D\u0C30\u0C3E\u0C15\u0C3F\u0C02\u0C17\u0C4D \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C15\u0C3E\u0C2A\u0C40 \u0C1A\u0C47\u0C2F\u0C2C\u0C21\u0C3F\u0C02\u0C26\u0C3F! (Copied to Clipboard)');
+                }).catch(() => {
+                    prompt('\u0C08 \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C28\u0C41 \u0C15\u0C3E\u0C2A\u0C40 \u0C1A\u0C47\u0C38\u0C3F \u0C2E\u0C40 WhatsApp \u0C17\u0C4D\u0C30\u0C42\u0C2A\u0C4D \u0C32\u0C4B \u0C2A\u0C47\u0C38\u0C4D\u0C1F\u0C4D \u0C1A\u0C47\u0C2F\u0C02\u0C21\u0C3F:', trackUrl);
+                });
+            } else {
+                prompt('\u0C08 \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C28\u0C41 \u0C15\u0C3E\u0C2A\u0C40 \u0C1A\u0C47\u0C38\u0C3F \u0C2E\u0C40 WhatsApp \u0C17\u0C4D\u0C30\u0C42\u0C2A\u0C4D \u0C32\u0C4B \u0C2A\u0C47\u0C38\u0C4D\u0C1F\u0C4D \u0C1A\u0C47\u0C2F\u0C02\u0C21\u0C3F:', trackUrl);
+            }
+        }
+
     </script>
 </body>
 </html>
