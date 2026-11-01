@@ -1117,7 +1117,7 @@
 
         // Initialize Data (LocalStorage -> window.INITIAL_STATIONS -> fetch fallback)
         async function initializeDataset() {
-            const DATASET_VERSION = "2026-11-01_v12_police_marker";
+            const DATASET_VERSION = "2026-11-01_v13_police_officer_photo";
             const savedVer = localStorage.getItem('POLICE_ELECTION_DATASET_VERSION');
             if (savedVer !== DATASET_VERSION) {
                 localStorage.removeItem('POLICE_ELECTION_STATIONS_DATA');
@@ -3542,16 +3542,16 @@
                 const icon = L.divIcon({
                     className: 'custom-officer-pin',
                     html: `
-                        <div class="radar-pulse" style="position: relative; width: 48px; height: 48px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(15,23,42,0.45); border: 2.5px solid #1e3a8a;">
-                            <img src="ap_police_logo.png" alt="AP Police" style="width: 36px; height: 36px; object-fit: contain; border-radius: 50%;" />
-                            <span style="position: absolute; bottom: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: #16a34a; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 8px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                                <i class="fa-solid fa-car"></i>
+                        <div class="radar-pulse" style="position: relative; width: 50px; height: 50px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(15,23,42,0.45); border: 2.5px solid #1e3a8a;">
+                            <img src="police_officer.png" alt="Police Officer" style="width: 42px; height: 42px; object-fit: cover; object-position: top center; border-radius: 50%;" />
+                            <span style="position: absolute; bottom: -2px; right: -2px; width: 17px; height: 17px; border-radius: 50%; background: #16a34a; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                <i class="fa-solid fa-location-dot"></i>
                             </span>
                         </div>
                     `,
-                    iconSize: [48, 48],
-                    iconAnchor: [24, 24],
-                    popupAnchor: [0, -25]
+                    iconSize: [50, 50],
+                    iconAnchor: [25, 25],
+                    popupAnchor: [0, -26]
                 });
 
                 const popupContent = `
@@ -3564,7 +3564,7 @@
                         </div>
                         <div class="space-y-1 mb-2">
                             <div class="flex items-center gap-2">
-                                <img src="ap_police_logo.png" style="width: 32px; height: 32px; object-fit: contain; border-radius: 50%; border: 1.5px solid #3b82f6; background: #ffffff; padding: 1px;" alt="Police" />
+                                <img src="police_officer.png" style="width: 36px; height: 36px; object-fit: cover; object-position: top center; border-radius: 50%; border: 2px solid #3b82f6; background: #ffffff; padding: 1px;" alt="Police Officer" />
                                 <div>
                                     <div class="font-bold text-slate-900 text-sm leading-tight flex items-center gap-1">
                                         ${d.name || 'Police Officer'}
@@ -3661,7 +3661,7 @@
                     <div class="bg-slate-50 hover:bg-blue-50/50 transition border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2">
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2">
-                                <img src="ap_police_logo.png" class="w-8 h-8 rounded-full border border-blue-400 bg-white object-contain p-0.5 shadow-xs" alt="Police" />
+                                <img src="police_officer.png" class="w-10 h-10 rounded-full border-2 border-blue-500 bg-white object-cover object-top shadow-xs" alt="Police Officer" />
                                 <div>
                                     <div class="flex items-center gap-1.5">
                                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>

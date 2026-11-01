@@ -419,15 +419,15 @@
                 const pinIcon = L.divIcon({
                     className: 'custom-car-pin',
                     html: `
-                        <div class="radar-pulse" style="position: relative; width: 44px; height: 44px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; border: 2.5px solid #1e3a8a; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
-                            <img src="ap_police_logo.png" alt="Police" style="width: 32px; height: 32px; object-fit: contain; border-radius: 50%;" />
-                            <span style="position: absolute; bottom: -2px; right: -2px; width: 15px; height: 15px; border-radius: 50%; background: #16a34a; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 8px; color: white;">
-                                <i class="fa-solid fa-car"></i>
+                        <div class="radar-pulse" style="position: relative; width: 48px; height: 48px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; border: 2.5px solid #1e3a8a; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
+                            <img src="police_officer.png" alt="Police Officer" style="width: 40px; height: 40px; object-fit: cover; object-position: top center; border-radius: 50%;" />
+                            <span style="position: absolute; bottom: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: #16a34a; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 8px; color: white;">
+                                <i class="fa-solid fa-location-dot"></i>
                             </span>
                         </div>
                     `,
-                    iconSize: [44, 44],
-                    iconAnchor: [22, 22]
+                    iconSize: [48, 48],
+                    iconAnchor: [24, 24]
                 });
                 marker = L.marker([lat, lng], { icon: pinIcon }).addTo(miniMap);
                 accuracyCircle = L.circle([lat, lng], { radius: accuracy, color: '#10b981', weight: 1, fillColor: '#10b981', fillOpacity: 0.15 }).addTo(miniMap);
