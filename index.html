@@ -2647,9 +2647,9 @@
                                 </span>
                                 <h4 class="font-bold text-slate-900 text-xs">${info.ps} Police Station</h4>
                                 <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-600">
-                                    <span><b>Route Inchage:</b> ${info.route_incharge || info.staff || '-'}</span>
-                                    ${info.striking_force_incharge ? `<span>| <b>Striking force Incharge:</b> ${info.striking_force_incharge}</span>` : ''}
-                                    ${info.special_striking_force_incharge ? `<span>| <b>Special Stricking force  Incharge:</b> ${info.special_striking_force_incharge}</span>` : ''}
+                                    <span><b>Route Inchage:</b> ${formatPhoneLinks(info.route_incharge || info.staff || '-')}</span>
+                                    ${info.striking_force_incharge ? `<span>| <b>Striking force Incharge:</b> ${formatPhoneLinks(info.striking_force_incharge)}</span>` : ''}
+                                    ${info.special_striking_force_incharge ? `<span>| <b>Special Stricking force  Incharge:</b> ${formatPhoneLinks(info.special_striking_force_incharge)}</span>` : ''}
                                 </div>
                             </div>
                             <button onclick="selectAndZoomRoute('${info.ps}', '${info.route}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1 shadow-sm transition">
@@ -3322,11 +3322,14 @@
             renderTable();
         }
 
-        // Format phone numbers as clickable dial links
+        // Format phone numbers as clickable dial links and WhatsApp Live Location request button
         function formatPhoneLinks(rawText) {
             if (!rawText || rawText === 'N/A' || rawText === '-') return rawText || '-';
+            const waMsg = encodeURIComponent("Election Duty: Please share your current Live Location on WhatsApp / \u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C2E\u0C40 \u0C32\u0C48\u0C35\u0C4D \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C37\u0C47\u0C30\u0C4D \u0C1A\u0C47\u0CAF\u0C17\u0C32\u0C30\u0C41.");
             // Regex to find 10-digit phone numbers
-            return rawText.replace(/(\b[6-9]\d{9}\b)/g, '<a href="tel:$1" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a>').replace(/\n/g, '<br>');
+            return rawText.replace(/(\b[6-9]\d{9}\b)/g, 
+                `<span class="inline-flex items-center gap-1 flex-wrap my-0.5"><a href="tel:$1" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a><a href="https://wa.me/91$1?text=${waMsg}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Request Live Location on WhatsApp" class="inline-flex items-center gap-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs transition"><i class="fa-brands fa-whatsapp text-[10px]"></i> Live Location</a></span>`
+            ).replace(/\n/g, '<br>');
         }
 
         function renderTable() {
@@ -3697,7 +3700,7 @@
                                 <span><b>Distance:</b> <span class="text-blue-800 font-bold bg-blue-50 px-1 rounded border border-blue-200">${s.distance_from_ps_kms ? s.distance_from_ps_kms + ' km' : '-'}</span></span>
                                 <span><b>Code:</b> <span class="font-mono text-slate-700 font-bold">${s.code || '-'}</span></span>
                                 <span><b>Electors:</b> ${(parseInt(s.no_of_voters, 10) || 0).toLocaleString()}</span>
-                                <span><b>BLO:</b> <a href="tel:${s.blo_contact_no}" class="text-blue-600 hover:underline font-semibold" onclick="event.stopPropagation()">${s.blo_contact_no || 'N/A'}</a></span>
+                                <span><b>BLO:</b> ${formatPhoneLinks(s.blo_contact_no)}</span>
                                 <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" onclick="event.stopPropagation()" class="text-emerald-700 hover:text-emerald-900 font-bold inline-flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300">
                                     <i class="fa-solid fa-diamond-turn-right text-[9px]"></i> Navigate
                                 </a>
