@@ -14,8 +14,25 @@
     <!-- Leaflet CSS & JS (Deferred for fast mobile rendering) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Paho MQTT client for Live Officer GPS Tracking -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
     <style>
+        .officer-radar-pulse {
+            position: relative;
+        }
+        .officer-radar-pulse::before {
+            content: '';
+            position: absolute;
+            top: -6px; left: -6px; right: -6px; bottom: -6px;
+            border-radius: 50%;
+            border: 2px solid #2563eb;
+            animation: officer-pulse 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+        @keyframes officer-pulse {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
         .ps-tooltip-badge {
             background-color: rgba(255, 255, 255, 0.96);
             border: 1px solid #2563eb;
@@ -393,6 +410,12 @@
             <!-- Leaflet Map Container -->
             <div class="relative w-full h-[calc(100vh-175px)] min-h-[500px] rounded-lg shadow-md border border-slate-200 overflow-hidden bg-slate-200">
                 <div id="main-map" class="w-full h-full"></div>
+
+                <!-- Floating Live Officers Tracker Pill -->
+                <button id="live-officers-badge" onclick="zoomToLiveOfficers()" class="hidden absolute top-3 left-14 z-[1000] bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg border border-emerald-400 text-xs font-bold text-emerald-800 flex items-center gap-2 hover:bg-emerald-50 transition cursor-pointer">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span id="live-officers-text">0 Live Officers</span>
+                </button>
 
                 <!-- Floating Map Legend -->
                 <div class="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm p-2 rounded-lg shadow-lg border border-slate-200 text-[10px] space-y-1">
@@ -1358,6 +1381,169 @@
         }
 
         // ================= TAB 2: LIVE LEAFLET MAP LOGIC =================
+                // ================= LIVE OFFICER GPS TRACKING VIA MQTT =================
+        let liveOfficersGroup = null;
+        let liveOfficersMap = {}; // officerId -> { data, marker }
+        let controlMqttClient = null;
+
+        function initOfficerMQTTTracking() {
+            if (controlMqttClient && controlMqttClient.isConnected()) return;
+            const clientId = 'ControlRoom_' + Math.random().toString(16).substr(2, 6);
+            controlMqttClient = new Paho.MQTT.Client('broker.hivemq.com', 8884, clientId);
+
+            controlMqttClient.onConnectionLost = function (responseObject) {
+                console.warn('Control Room MQTT lost:', responseObject.errorMessage);
+                setTimeout(initOfficerMQTTTracking, 5000);
+            };
+
+            controlMqttClient.onMessageArrived = function (message) {
+                try {
+                    const data = JSON.parse(message.payloadString);
+                    updateLiveOfficerMarker(data);
+                } catch(e) {
+                    console.error('Error parsing live officer message:', e);
+                }
+            };
+
+            controlMqttClient.connect({
+                useSSL: true,
+                timeout: 5,
+                keepAliveInterval: 30,
+                cleanSession: true,
+                onSuccess: function () {
+                    console.log('Control room connected to Live Officer tracking stream!');
+                    controlMqttClient.subscribe('election_maps_skl/officers/#', { qos: 0 });
+                },
+                onFailure: function (err) {
+                    console.warn('HiveMQ failed, trying EMQX...', err);
+                    controlMqttClient = new Paho.MQTT.Client('broker.emqx.io', 8084, clientId);
+                    controlMqttClient.connect({
+                        useSSL: true,
+                        timeout: 5,
+                        keepAliveInterval: 30,
+                        cleanSession: true,
+                        onSuccess: function() {
+                            controlMqttClient.subscribe('election_maps_skl/officers/#', { qos: 0 });
+                        }
+                    });
+                }
+            });
+        }
+
+        function updateLiveOfficerMarker(data) {
+            if (!data || !data.lat || !data.lng || !mainMap) return;
+            const lat = parseFloat(data.lat);
+            const lng = parseFloat(data.lng);
+            if (isNaN(lat) || isNaN(lng)) return;
+
+            if (!liveOfficersGroup) {
+                liveOfficersGroup = L.layerGroup().addTo(mainMap);
+            }
+
+            const officerId = data.officerId || data.phone || `${data.ps}_${data.route}`;
+            const name = data.name || 'Officer On Duty';
+            const ps = data.ps || '';
+            const route = data.route || '';
+            const phone = data.phone || '';
+            const speed = data.speed || 0;
+            const accuracy = data.accuracy || 0;
+            const timeStr = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+
+            const officerIcon = L.divIcon({
+                className: 'custom-officer-pin',
+                html: `
+                    <div class="officer-radar-pulse" style="position: relative; width: 40px; height: 40px; border-radius: 50%; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.45); border: 3px solid #ffffff; font-size: 17px;">
+                        <i class="fa-solid fa-car-side"></i>
+                        <span style="position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; background: #22c55e; border: 2px solid #ffffff;"></span>
+                    </div>
+                `,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -22]
+            });
+
+            const popupHtml = `
+                <div class="p-1 font-sans text-xs min-w-[260px]">
+                    <div class="flex items-center justify-between pb-1.5 border-b mb-1.5">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> LIVE TRACKING
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+                    </div>
+                    <div class="space-y-1 mb-2">
+                        <div class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-halved text-blue-600"></i> ${name}
+                        </div>
+                        <div class="text-[11px] text-slate-700">
+                            <b>Police Station:</b> <span class="font-semibold text-blue-700">${ps} PS</span>
+                        </div>
+                        <div class="text-[11px] text-slate-700">
+                            <b>Route:</b> <span class="font-bold text-purple-700">Route ${route}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-700">
+                            <b>Contact:</b> <a href="tel:${phone}" class="text-blue-600 font-semibold underline"><i class="fa-solid fa-phone text-[9px] mr-0.5"></i>${phone}</a>
+                        </div>
+                        <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-600">
+                            <span><b>Speed:</b> <b class="text-blue-700">${speed} km/h</b></span>
+                            <span><b>GPS Accuracy:</b> <b class="text-emerald-700">Â±${accuracy} m</b></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 pt-1 border-t">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
+                            <i class="fa-solid fa-diamond-turn-right"></i> Navigate to Officer
+                        </a>
+                        <button type="button" onclick="mainMap.setView([${lat}, ${lng}], 16)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1 px-2 rounded text-[11px] shadow-2xs">
+                            <i class="fa-solid fa-crosshairs"></i> Zoom
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (!liveOfficersMap[officerId]) {
+                const marker = L.marker([lat, lng], { icon: officerIcon }).addTo(liveOfficersGroup);
+                marker.bindPopup(popupHtml, { maxWidth: 320 });
+                marker.bindTooltip(`ðŸš“ ${name} [Route ${route}] â€¢ Live ðŸŸ¢`, { permanent: false, direction: 'top', className: 'ps-tooltip-badge' });
+                liveOfficersMap[officerId] = { data: data, marker: marker };
+            } else {
+                const existing = liveOfficersMap[officerId];
+                existing.marker.setLatLng([lat, lng]);
+                existing.marker.setPopupContent(popupHtml);
+                existing.data = data;
+            }
+
+            updateLiveOfficersCountUI();
+        }
+
+        function updateLiveOfficersCountUI() {
+            const activeCount = Object.keys(liveOfficersMap).length;
+            const badge = document.getElementById('live-officers-badge');
+            const txt = document.getElementById('live-officers-text');
+            if (badge) {
+                if (activeCount > 0) {
+                    badge.classList.remove('hidden');
+                    if (txt) txt.innerHTML = `<b>${activeCount}</b> Live Officer${activeCount > 1 ? 's' : ''} (Click to View)`;
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+
+        function zoomToLiveOfficers() {
+            const keys = Object.keys(liveOfficersMap);
+            if (keys.length === 0) {
+                alert('à°ªà±à°°à°¸à±à°¤à±à°¤à°‚ à°²à±ˆà°µà± à°œà±€à°ªà±€à°Žà°¸à± à°Ÿà±à°°à°¾à°•à°¿à°‚à°—à±â€Œà°²à±‹ à°Žà°µà°°à±‚ à°²à±‡à°°à± (No active officers tracking currently).');
+                return;
+            }
+            if (keys.length === 1) {
+                const item = liveOfficersMap[keys[0]];
+                mainMap.setView([item.data.lat, item.data.lng], 16);
+                item.marker.openPopup();
+            } else {
+                const group = L.featureGroup(keys.map(k => liveOfficersMap[k].marker));
+                mainMap.fitBounds(group.getBounds().pad(0.2));
+            }
+        }
+
         function initMainMap() {
             if (mainMap) return;
 
@@ -1389,6 +1575,8 @@
             // Initialize isolated layer groups (Direct crisp station pins, no cluster numbers)
             mainMarkersGroup = L.layerGroup().addTo(mainMap);
             mainRoutesGroup = L.layerGroup().addTo(mainMap);
+            liveOfficersGroup = L.layerGroup().addTo(mainMap);
+            initOfficerMQTTTracking();
 
             // Load Mandal Boundaries from KMZ using JSZip
             loadMandalBoundaries();
@@ -3322,14 +3510,18 @@
             renderTable();
         }
 
-        // Format phone numbers as clickable dial links and WhatsApp Live Location request button
+        // Format phone numbers as clickable dial links and WhatsApp Live Location tracker link
         function formatPhoneLinks(rawText) {
             if (!rawText || rawText === 'N/A' || rawText === '-') return rawText || '-';
-            const waMsg = encodeURIComponent("Election Duty: Please share your current Live Location on WhatsApp / \u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C2E\u0C40 \u0C32\u0C48\u0C35\u0C4D \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C37\u0C47\u0C30\u0C4D \u0C1A\u0C47\u0CAF\u0C17\u0C32\u0C30\u0C41.");
-            // Regex to find 10-digit phone numbers
-            return rawText.replace(/(\b[6-9]\d{9}\b)/g, 
-                `<span class="inline-flex items-center gap-1 flex-wrap my-0.5"><a href="tel:$1" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a><a href="https://wa.me/91$1?text=${waMsg}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Request Live Location on WhatsApp" class="inline-flex items-center gap-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs transition"><i class="fa-brands fa-whatsapp text-[10px]"></i> Live Location</a></span>`
-            ).replace(/\n/g, '<br>');
+            
+            const currentUrl = window.location.href.split('?')[0].split('#')[0];
+            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+            
+            return rawText.replace(/(\b[6-9]\d{9}\b)/g, function(match, phone) {
+                const trackUrl = `${baseUrl}track.html?phone=${phone}`;
+                const waMsg = encodeURIComponent("Sir/Madam, Election Duty Live GPS Tracking:\n\u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C08 \u0C15\u0C4D\u0C30\u0C3F\u0C02\u0C26\u0C3F \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C2A\u0C48 \u0C15\u0C4D\u0C32\u0C3F\u0C15\u0C4D \u0C1A\u0C47\u0C38\u0C3F 'START LIVE GPS' \u0C28\u0C4A\u0C15\u0C4D\u0C15\u0C02\u0C21\u0C3F. \u0C2E\u0C40 \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C15\u0C02\u0C1F\u0C4D\u0C30\u0C4B\u0C32\u0C4D \u0C30\u0C42\u0C2E\u0C4D \u0C32\u0C48\u0C35\u0C4D \u0C2E\u0C4D\u0C2F\u0C3E\u0C2A\u0C4D \u0C32\u0C4B \u0C15\u0C28\u0C3F\u0C2A\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C02\u0C26\u0C3F:\n" + trackUrl);
+                return `<span class="inline-flex items-center gap-1 flex-wrap my-0.5"><a href="tel:${phone}" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>${phone}</a><a href="https://wa.me/91${phone}?text=${waMsg}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Send Live GPS Tracker link on WhatsApp" class="inline-flex items-center gap-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs transition"><i class="fa-brands fa-whatsapp text-[10px]"></i> Live Location</a></span>`;
+            }).replace(/\n/g, '<br>');
         }
 
         function renderTable() {

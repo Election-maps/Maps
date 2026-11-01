@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Officer Live GPS Tracking - Election Duty</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Leaflet CSS & JS for mini-map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Paho MQTT client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        .radar-pulse {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col items-center justify-between p-3 select-none">
+
+    <!-- Header Card -->
+    <header class="w-full max-w-md bg-white rounded-2xl shadow-md border border-slate-200 p-4 mb-3">
+        <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <img src="ap_police_logo.png" alt="AP Police" class="h-12 w-auto object-contain" onerror="this.style.display='none'">
+            <div class="text-center flex-1">
+                <span class="text-[10px] font-black text-blue-700 tracking-wider uppercase">Andhra Pradesh Police</span>
+                <h1 class="text-sm font-bold text-slate-900 leading-tight">ELECTION DUTY LIVE TRACKER</h1>
+                <span class="text-[10px] text-slate-500 font-semibold">కంట్రోల్ రూమ్ లైవ్ GPS ట్రాకర్</span>
+            </div>
+            <img src="srikakulam_police_logo.png" alt="SKL Police" class="h-12 w-auto object-contain" onerror="this.style.display='none'">
+        </div>
+
+        <!-- Officer Info Pill -->
+        <div class="mt-3 bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-xs space-y-1">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">అధికారి పేరు (Officer):</span>
+                <span id="officer-name" class="font-bold text-slate-900">Officer On Duty</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">పోలీస్ స్టేషన్ (PS):</span>
+                <span id="officer-ps" class="font-bold text-blue-700">Police Station</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">రూట్ నంబర్ (Route):</span>
+                <span id="officer-route" class="font-bold text-purple-700">Route -</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">ఫోన్ (Phone):</span>
+                <span id="officer-phone" class="font-mono font-bold text-slate-800">-</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Live Tracker Card -->
+    <main class="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200 p-4 mb-3 flex-1 flex flex-col justify-between">
+        <!-- Status Indicator -->
+        <div class="text-center py-2">
+            <div id="status-badge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                <span>ట్రాకింగ్ ఇంకా ప్రారంభించలేదు (Not Started)</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2 px-2">
+                క్రింది బటన్‌పై క్లిక్ చేసి <b>"Allow"</b> నొక్కితే మీ లొకేషన్ కంట్రోల్ రూమ్ మ్యాప్‌కు కనెక్ట్ అవుతుంది.
+            </p>
+        </div>
+
+        <!-- Big Start / Stop Button -->
+        <div class="my-4 text-center">
+            <button id="toggle-tracking-btn" onclick="toggleTracking()" class="w-full py-4 px-6 rounded-2xl font-bold text-base text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition shadow-lg flex items-center justify-center gap-2.5">
+                <i class="fa-solid fa-satellite-dish text-xl"></i>
+                <span id="btn-text">START LIVE GPS (ప్రారంభించు)</span>
+            </button>
+        </div>
+
+        <!-- Live Telemetry / Coordinates -->
+        <div id="telemetry-panel" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 text-xs mb-3 space-y-1.5">
+            <div class="flex justify-between items-center text-emerald-950 font-bold border-b border-emerald-200 pb-1">
+                <span><i class="fa-solid fa-signal text-emerald-600 mr-1"></i> GPS కనెక్ట్ అయ్యింది</span>
+                <span id="live-time" class="text-[10px] text-slate-500 font-mono">00:00:00</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                <div>
+                    <span class="text-slate-500">అక్షాంశం (Lat):</span>
+                    <div id="val-lat" class="font-mono font-bold text-slate-800">0.000000</div>
+                </div>
+                <div>
+                    <span class="text-slate-500">రేఖాంశం (Lng):</span>
+                    <div id="val-lng" class="font-mono font-bold text-slate-800">0.000000</div>
+                </div>
+                <div>
+                    <span class="text-slate-500">ఖచ్చితత్వం (Accuracy):</span>
+                    <div id="val-acc" class="font-bold text-emerald-700">±0 m</div>
+                </div>
+                <div>
+                    <span class="text-slate-500">వేగం (Speed):</span>
+                    <div id="val-speed" class="font-bold text-blue-700">0 km/h</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mini-Map -->
+        <div id="map-container" class="w-full h-44 rounded-xl border border-slate-300 overflow-hidden relative shadow-inner">
+            <div id="mini-map" class="w-full h-full"></div>
+            <div id="map-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center text-white text-xs font-bold pointer-events-none">
+                <span>Start GPS నొక్కగానే మ్యాప్ కనిపిస్తుంది</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Instructions -->
+    <footer class="w-full max-w-md text-center text-[10px] text-slate-500 px-2 pb-2">
+        <p>🔒 <b>గమనిక:</b> డ్యూటీ పూర్తయ్యే వరకు ఈ పేజీని అలాగే ఉంచండి. స్క్రీన్ ఆఫ్ అవ్వకుండా ఇది ఆటోమేటిక్‌గా ఆన్‌లోనే ఉంచుతుంది.</p>
+    </footer>
+
+    <script>
+        // Parse URL Query Parameters
+        const params = new URLSearchParams(window.location.search);
+        const officerName = params.get('officer') || params.get('name') || 'Officer On Duty';
+        const officerPs = params.get('ps') || 'Police Station';
+        const officerRoute = params.get('route') || '-';
+        const officerPhone = params.get('phone') || '';
+
+        document.getElementById('officer-name').innerText = officerName;
+        document.getElementById('officer-ps').innerText = officerPs + ' PS';
+        document.getElementById('officer-route').innerText = 'Route ' + officerRoute;
+        document.getElementById('officer-phone').innerText = officerPhone || '-';
+
+        // Unique Officer Identifier
+        const officerId = (officerPhone || `${officerPs}_${officerRoute}_${officerName}`).replace(/[^a-zA-Z0-9_]/g, '_');
+        const mqttTopic = `election_maps_skl/officers/${officerId}`;
+
+        let isTracking = false;
+        let watchId = null;
+        let mqttClient = null;
+        let miniMap = null;
+        let officerMarker = null;
+        let wakeLock = null;
+
+        // Initialize Leaflet Mini-map
+        function initMiniMap() {
+            miniMap = L.map('mini-map', { zoomControl: false, attributionControl: false }).setView([18.2949, 83.8938], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(miniMap);
+        }
+        initMiniMap();
+
+        // Connect to Free Public MQTT WebSocket Broker (HiveMQ & EMQX fallback)
+        function initMQTT(onConnectCb) {
+            const clientId = 'Officer_' + officerId + '_' + Math.random().toString(16).substr(2, 6);
+            // Use broker.hivemq.com port 8884 (WSS / SSL)
+            mqttClient = new Paho.MQTT.Client('broker.hivemq.com', 8884, clientId);
+
+            mqttClient.onConnectionLost = function (responseObject) {
+                console.warn('MQTT Connection lost:', responseObject.errorMessage);
+                if (isTracking) {
+                    setTimeout(() => initMQTT(onConnectCb), 3000);
+                }
+            };
+
+            mqttClient.connect({
+                useSSL: true,
+                timeout: 5,
+                keepAliveInterval: 30,
+                cleanSession: true,
+                onSuccess: function () {
+                    console.log('Connected to MQTT Broker on WSS!');
+                    if (onConnectCb) onConnectCb();
+                },
+                onFailure: function (err) {
+                    console.error('MQTT Connect Failed:', err);
+                    // Fallback to EMQX broker if HiveMQ fails
+                    fallbackToEMQX(clientId, onConnectCb);
+                }
+            });
+        }
+
+        function fallbackToEMQX(clientId, onConnectCb) {
+            console.log('Attempting EMQX broker fallback...');
+            mqttClient = new Paho.MQTT.Client('broker.emqx.io', 8084, clientId);
+            mqttClient.connect({
+                useSSL: true,
+                timeout: 5,
+                keepAliveInterval: 30,
+                cleanSession: true,
+                onSuccess: function() {
+                    console.log('Connected to EMQX Broker!');
+                    if (onConnectCb) onConnectCb();
+                },
+                onFailure: function(e) {
+                    console.error('All brokers failed:', e);
+                }
+            });
+        }
+
+        // Toggle Tracking Start / Stop
+        async function toggleTracking() {
+            if (!isTracking) {
+                startTracking();
+            } else {
+                stopTracking();
+            }
+        }
+
+        async function startTracking() {
+            if (!navigator.geolocation) {
+                alert('మీ మొబైల్ బ్రౌజర్ GPS లొకేషన్ సపోర్ట్ చేయడం లేదు.');
+                return;
+            }
+
+            // Update UI to connecting
+            const btn = document.getElementById('toggle-tracking-btn');
+            btn.className = 'w-full py-4 px-6 rounded-2xl font-bold text-base text-white bg-amber-600 hover:bg-amber-700 transition shadow-lg flex items-center justify-center gap-2.5';
+            document.getElementById('btn-text').innerText = 'GPS శోధిస్తోంది (Connecting GPS)...';
+
+            initMQTT(() => {
+                // Request WakeLock to keep screen on while on duty
+                try {
+                    if ('wakeLock' in navigator) {
+                        navigator.wakeLock.request('screen').then(lock => { wakeLock = lock; });
+                    }
+                } catch(e) {}
+
+                watchId = navigator.geolocation.watchPosition(onPositionSuccess, onPositionError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 3000,
+                    timeout: 10000
+                });
+
+                isTracking = true;
+                document.getElementById('map-overlay').classList.add('hidden');
+                document.getElementById('telemetry-panel').classList.remove('hidden');
+
+                const badge = document.getElementById('status-badge');
+                badge.className = 'radar-pulse inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300';
+                badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span><span>లైవ్ ట్రాకింగ్ ఆన్ లో ఉంది (Live Tracking Active)</span>';
+
+                btn.className = 'w-full py-4 px-6 rounded-2xl font-bold text-base text-white bg-rose-600 hover:bg-rose-700 active:scale-98 transition shadow-lg flex items-center justify-center gap-2.5';
+                document.getElementById('btn-text').innerText = 'STOP TRACKING (ఆపివేయి)';
+            });
+        }
+
+        function stopTracking() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (wakeLock) {
+                try { wakeLock.release(); } catch(e) {}
+                wakeLock = null;
+            }
+
+            isTracking = false;
+
+            const badge = document.getElementById('status-badge');
+            badge.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300';
+            badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span><span>ట్రాకింగ్ నిలిపివేయబడింది (Stopped)</span>';
+
+            const btn = document.getElementById('toggle-tracking-btn');
+            btn.className = 'w-full py-4 px-6 rounded-2xl font-bold text-base text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition shadow-lg flex items-center justify-center gap-2.5';
+            document.getElementById('btn-text').innerText = 'START LIVE GPS (ప్రారంభించు)';
+        }
+
+        function onPositionSuccess(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = Math.round(position.coords.accuracy || 0);
+            const speedKm = position.coords.speed !== null && position.coords.speed >= 0 ? Math.round(position.coords.speed * 3.6) : 0;
+            const now = new Date();
+
+            // Update UI Values
+            document.getElementById('val-lat').innerText = lat.toFixed(6);
+            document.getElementById('val-lng').innerText = lng.toFixed(6);
+            document.getElementById('val-acc').innerText = `±${accuracy} మీటర్లు`;
+            document.getElementById('val-speed').innerText = `${speedKm} km/h`;
+            document.getElementById('live-time').innerText = now.toLocaleTimeString();
+
+            // Update Mini-map marker
+            if (miniMap) {
+                miniMap.setView([lat, lng], 16);
+                if (!officerMarker) {
+                    const carIcon = L.divIcon({
+                        className: 'officer-pin',
+                        html: '<div style="background-color:#2563eb; color:white; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow:0 4px 10px rgba(0,0,0,0.3); font-size:15px;"><i class="fa-solid fa-car-side"></i></div>',
+                        iconSize: [34, 34],
+                        iconAnchor: [17, 17]
+                    });
+                    officerMarker = L.marker([lat, lng], { icon: carIcon }).addTo(miniMap);
+                } else {
+                    officerMarker.setLatLng([lat, lng]);
+                }
+            }
+
+            // Publish location payload to MQTT
+            const payload = {
+                officerId: officerId,
+                name: officerName,
+                ps: officerPs,
+                route: officerRoute,
+                phone: officerPhone,
+                lat: lat,
+                lng: lng,
+                accuracy: accuracy,
+                speed: speedKm,
+                timestamp: now.getTime()
+            };
+
+            if (mqttClient && mqttClient.isConnected()) {
+                const message = new Paho.MQTT.Message(JSON.stringify(payload));
+                message.destinationName = mqttTopic;
+                message.retained = true; // Retain latest location so control room sees it immediately on load
+                mqttClient.send(message);
+            }
+        }
+
+        function onPositionError(err) {
+            console.error('GPS Position Error:', err);
+            let msg = 'లొకేషన్ పొందడం వీలుకాలేదు. దయచేసి మీ మొబైల్ సెట్టింగ్స్‌లో Location (GPS) ఆన్ చేసి Permission Allow చేయండి.';
+            if (err.code === 1) msg = 'Location Permission తిరస్కరించబడింది. దయచేసి బ్రౌజర్ సెట్టింగ్స్‌లో లొకేషన్ అనుమతించండి.';
+            alert(msg);
+            stopTracking();
+        }
+    </script>
+</body>
+</html>
