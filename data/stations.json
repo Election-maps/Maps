@@ -1,11 +1,11 @@
-[
+﻿[
     {
         "id":  1,
         "sno":  1,
         "mandal_zptc_segment":  "Srikakulam",
         "mptc_segment":  "PONNAM",
         "route_no":  "I",
-        "route_incharge":  "SI KV Sures, 9704452107\nCI, Ramakrishna , 6309990814",
+        "route_incharge":  "SI KV Sures, 6309990846\nCI, Ramakrishna , 6309990814",
         "striking_force_incharge":  "",
         "special_striking_force_incharge":  "",
         "qrt":  "",
@@ -24,7 +24,7 @@
         "others":  "",
         "latitude":  "18.411",
         "longitude":  "83.9427",
-        "route_staff":  "SI KV Sures, 9704452107\nCI, Ramakrishna , 6309990814"
+        "route_staff":  "SI KV Sures, 6309990846\nCI, Ramakrishna , 6309990814"
     },
     {
         "id":  2,
