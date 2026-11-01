@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live GPS Tracker | AP Police Election Duty</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Paho MQTT -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <!-- Stations Data for Dropdowns -->
+    <script src="data/stations.js"></script>
+    <style>
+        .radar-pulse {
+            animation: radarPulse 1.8s infinite ease-out;
+        }
+        @keyframes radarPulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none">
+
+    <!-- Header Banner -->
+    <header class="bg-slate-950 border-b border-slate-800 p-3.5 shadow-lg sticky top-0 z-50">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <img src="ap_police_logo.png" alt="AP Police" class="h-10 w-10 object-contain drop-shadow">
+                <div>
+                    <h1 class="text-xs sm:text-sm font-black tracking-wide text-white uppercase leading-tight">AP POLICE ELECTION CELL</h1>
+                    <p class="text-[10px] text-amber-400 font-bold tracking-wider">SRIKAKULAM DISTRICT POLICE</p>
+                </div>
+            </div>
+            <img src="srikakulam_police_logo.png" alt="SKL Police" class="h-10 w-10 object-contain drop-shadow">
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-3.5">
+
+        <!-- Status Card -->
+        <div id="status-card" class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700/80 shadow-md text-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-slate-700/60 text-slate-300 border border-slate-600/50 mb-2">
+                <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                <span id="status-text">GPS OFF • Ready to Start</span>
+            </div>
+            <h2 id="officer-display-title" class="text-base font-black text-white">Election Duty Patrol Tracker</h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">&#3118;&#3136; &#3122;&#3148;&#3125;&#3149; &#3122;&#3149;&#3119;&#3093;&#3143;&#3127;&#3112;&#3149; &#3093;&#3074;&#3103;&#3149;&#3120;&#314b;&#3122;&#3149; &#3120;&#3142;&#3102;&#3118;&#3149; &#3122;&#3148;&#3125;&#3149; &#3118;&#3149;&#3119;&#3134;&#3114;&#3149; &#3122;&#3147; &#3093;&#3112;&#3135;&#3114;&#3135;&#3128;&#3149;&#3108;&#3137;&#3074;&#3110;&#3135;.</p>
+        </div>
+
+        <!-- Setup Form Card -->
+        <div id="setup-card" class="bg-slate-800/90 rounded-2xl p-4 border border-slate-700/80 shadow-md space-y-3 text-xs">
+            <h3 class="font-bold text-slate-200 text-xs flex items-center gap-1.5 border-b border-slate-700/60 pb-2">
+                <i class="fa-solid fa-id-badge text-blue-400"></i> Officer Details (&#3077;&#3111;&#3135;&#3093;&#3134;&#3120;&#3135; &#3125;&#3135;&#3125;&#3120;&#3134;&#3122;&#3137;)
+            </h3>
+
+            <!-- Police Station Dropdown -->
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">&#3114;&#314B;&#3122;&#3136;&#3128;&#3149; &#3128;&#3149;&#3103;&#3143;&#3127;&#3112;&#3149; (Police Station):</label>
+                <select id="input-ps" onchange="onPSChange(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 font-bold text-slate-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="">Select Police Station...</option>
+                </select>
+            </div>
+
+            <!-- Route Dropdown -->
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">&#3120;&#3142;&#3103;&#3149; &#3112;&#3074;&#3116;&#3120;&#3149; (Route No):</label>
+                <select id="input-route" onchange="onRouteChange(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 font-bold text-slate-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="">Select Route...</option>
+                </select>
+            </div>
+
+            <!-- Officer Name -->
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">&#3077;&#3111;&#3135;&#3093;&#3134;&#3120;&#3135; &#3114;&#3143;&#3120;&#3141; / &#3112;&#3147;&#3110;&#3134; (Name &amp; Rank):</label>
+                <input type="text" id="input-name" placeholder="e.g. SI KV Suresh / Patrol Car 1" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 font-semibold text-slate-100 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+
+            <!-- Phone Number -->
+            <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">&#3115;&#314B;&#3112;&#3149; &#3112;&#3074;&#3116;&#3120;&#3149; (10 Digits WhatsApp Phone):</label>
+                <input type="tel" id="input-phone" placeholder="e.g. 9704452107" maxlength="10" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 font-bold text-emerald-400 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+        </div>
+
+        <!-- Big Start / Stop Button -->
+        <button id="toggle-tracking-btn" type="button" onclick="toggleTracking()" class="w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-98 text-white shadow-xl flex items-center justify-center gap-2.5 transition cursor-pointer">
+            <i class="fa-solid fa-satellite-dish text-lg"></i>
+            <span>START LIVE GPS TRACKING</span>
+        </button>
+
+        <!-- Live Telemetry Card (Hidden until active) -->
+        <div id="telemetry-card" class="bg-slate-800/90 rounded-2xl p-3.5 border border-slate-700/80 shadow-md space-y-2.5 hidden">
+            <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span> Live GPS Streaming
+                </span>
+                <span id="pings-sent-badge" class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60 font-bold">0 Pings Sent</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400 font-semibold">Speed (&#3125;&#3143;&#3095;&#3074;)</div>
+                    <div id="stat-speed" class="text-lg font-black text-blue-400">0.0 <span class="text-[10px] font-normal text-slate-400">km/h</span></div>
+                </div>
+                <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                    <div class="text-[10px] text-slate-400 font-semibold">Accuracy (&#3077;&#3093;&#3149;&#3119;&#3138;&#3120;&#3137;&#3128;&#3136;)</div>
+                    <div id="stat-accuracy" class="text-lg font-black text-emerald-400">±0 <span class="text-[10px] font-normal text-slate-400">m</span></div>
+                </div>
+            </div>
+
+            <div class="text-[10px] text-slate-400 font-mono flex items-center justify-between bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                <span>Coordinates: <b id="stat-coords" class="text-slate-200">18.0000, 83.0000</b></span>
+                <span id="stat-time" class="text-slate-500">--:--:--</span>
+            </div>
+
+            <!-- Mini Live Map -->
+            <div class="rounded-xl overflow-hidden border border-slate-700/80 h-44 relative">
+                <div id="mini-map" class="w-full h-full"></div>
+            </div>
+        </div>
+
+        <!-- Instructions Alert -->
+        <div class="bg-blue-950/40 border border-blue-800/40 rounded-xl p-3 text-[11px] text-blue-200 space-y-1">
+            <div class="font-bold flex items-center gap-1.5 text-blue-300">
+                <i class="fa-solid fa-circle-info"></i> &#3078;&#3115;&#3136;&#3128;&#3120;&#3149;&#3122;&#3093;&#3137; &#3128;&#3138;&#3114;&#3112;&#3122;&#3137; (Duty Instructions):
+            </div>
+            <p>1. 'START LIVE GPS TRACKING' &#3112;&#314a;&#3093;&#3149;&#3093;&#3135;&#3112; &#3108;&#3120;&#3147;&#3125;&#3134;&#3108; &#3118;&#314a;&#3116;&#3144;&#3122;&#3149;&#3122;&#3147; Location Permission (Allow) &#3079;&#3125;&#3149;&#3125;&#3074;&#3105;&#3135;.</p>
+            <p>2. &#3093;&#3105;&#3147;&#3114;&#3147;&#3122;&#3135;&#3074;&#3095;&#3149; &#3105;&#3149;&#3119;&#3138;&#3103;&#3149;&#3136; &#3118;&#3137;&#3093;&#3135;&#3128;&#3141;&#3125;&#3120;&#3093;&#3137; &#3073; &#3114;&#3143;&#3100;&#3136;&#3112;&#3135; Close &#3114;&#3143;&#3119;&#3149;&#3093;&#3074;&#3105;&#3135;. Screen On &#3122;&#3147;&#3112;&#3143; &#3079;&#3074;&#3103;&#3137;&#3074;&#3110;&#3135;.</p>
+        </div>
+
+    </main>
+
+    <footer class="p-3 text-center text-[10px] text-slate-500 border-t border-slate-800/60 mt-auto">
+        AP Police Election Administration • Srikakulam District
+    </footer>
+
+    <script>
+        // MQTT Broker Config (Free, High-Reliability Public Broker)
+        const MQTT_BROKER = 'broker.hivemq.com';
+        const MQTT_PORT = 8884; // WebSocket SSL
+        const FALLBACK_BROKER = 'broker.emqx.io';
+        const FALLBACK_PORT = 8084;
+
+        let mqttClient = null;
+        let isTracking = false;
+        let watchPositionId = null;
+        let wakeLock = null;
+        let pingsCount = 0;
+        let miniMap = null;
+        let marker = null;
+        let accuracyCircle = null;
+
+        // Auto Populate Dropdowns from stations.js
+        window.addEventListener('DOMContentLoaded', () => {
+            populatePSDropdown();
+            checkUrlParams();
+        });
+
+        function populatePSDropdown() {
+            const psSelect = document.getElementById('input-ps');
+            if (!psSelect || typeof INITIAL_STATIONS === 'undefined') return;
+
+            const psSet = new Set();
+            INITIAL_STATIONS.forEach(s => {
+                if (s.psname) psSet.add(s.psname.trim());
+            });
+
+            Array.from(psSet).sort().forEach(ps => {
+                const opt = document.createElement('option');
+                opt.value = ps;
+                opt.textContent = `${ps} PS`;
+                psSelect.appendChild(opt);
+            });
+        }
+
+        function onPSChange(psName) {
+            const routeSelect = document.getElementById('input-route');
+            if (!routeSelect) return;
+            routeSelect.innerHTML = '<option value="">Select Route...</option>';
+
+            if (!psName || typeof INITIAL_STATIONS === 'undefined') return;
+
+            const routeSet = new Set();
+            INITIAL_STATIONS.filter(s => (s.psname || '').trim() === psName.trim()).forEach(s => {
+                if (s.route_no) routeSet.add(s.route_no.trim());
+            });
+
+            Array.from(routeSet).sort().forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = `Route ${r}`;
+                routeSelect.appendChild(opt);
+            });
+        }
+
+        function onRouteChange(routeNo) {
+            const psName = document.getElementById('input-ps').value.trim();
+            if (!psName || !routeNo || typeof INITIAL_STATIONS === 'undefined') return;
+
+            const st = INITIAL_STATIONS.find(s => (s.psname || '').trim() === psName && (s.route_no || '').trim() === routeNo.trim());
+            if (st) {
+                const incharge = st.route_incharge || st.route_staff || '';
+                if (!document.getElementById('input-name').value) {
+                    document.getElementById('input-name').value = incharge.split('\n')[0] || incharge;
+                }
+                const match = incharge.match(/(\d{10})/);
+                if (match && !document.getElementById('input-phone').value) {
+                    document.getElementById('input-phone').value = match[1];
+                }
+            }
+        }
+
+        function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const ps = params.get('ps');
+            const route = params.get('route');
+            const phone = params.get('phone');
+            const officer = params.get('officer');
+
+            if (ps) {
+                document.getElementById('input-ps').value = ps;
+                onPSChange(ps);
+            }
+            if (route) {
+                setTimeout(() => {
+                    document.getElementById('input-route').value = route;
+                }, 100);
+            }
+            if (phone) {
+                document.getElementById('input-phone').value = phone;
+            }
+            if (officer) {
+                document.getElementById('input-name').value = officer;
+            }
+        }
+
+        // Toggle Tracking
+        function toggleTracking() {
+            if (!isTracking) {
+                startTracking();
+            } else {
+                stopTracking();
+            }
+        }
+
+        function startTracking() {
+            const ps = document.getElementById('input-ps').value.trim();
+            const route = document.getElementById('input-route').value.trim();
+            const phone = document.getElementById('input-phone').value.trim();
+            const name = document.getElementById('input-name').value.trim() || 'Officer On Duty';
+
+            if (!ps || !route) {
+                alert('\u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C2A\u0C4B\u0C32\u0C40\u0C38\u0C4D \u0C38\u0C4D\u0C1F\u0C47\u0C37\u0C28\u0C4D \u0C2E\u0C30\u0C3F\u0C2F\u0C41 \u0C30\u0C42\u0C1F\u0C4D \u0C28\u0C02\u0C2C\u0C30\u0C4D \u0C0E\u0C02\u0C1A\u0C41\u0C15\u0C4B\u0C02\u0C21\u0C3F.');
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                alert('\u0C2E\u0C40 \u0C2B\u0C4B\u0C28\u0C4D\u200C\u0C32\u0C4B GPS Location \u0C38\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C4D \u0C1A\u0C47\u0C2F\u0C21\u0C02 \u0C32\u0C47\u0C26\u0C41.');
+                return;
+            }
+
+            // Lock Screen WakeLock
+            requestWakeLock();
+
+            // Connect MQTT
+            connectMQTT(() => {
+                isTracking = true;
+                updateUIRunning(true);
+                initMiniMap();
+
+                // High Accuracy Geolocation Watcher
+                watchPositionId = navigator.geolocation.watchPosition(
+                    onLocationSuccess,
+                    onLocationError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 3000
+                    }
+                );
+            });
+        }
+
+        function stopTracking() {
+            isTracking = false;
+            if (watchPositionId !== null) {
+                navigator.geolocation.clearWatch(watchPositionId);
+                watchPositionId = null;
+            }
+            if (mqttClient && mqttClient.isConnected()) {
+                mqttClient.disconnect();
+            }
+            if (wakeLock) {
+                wakeLock.release().then(() => { wakeLock = null; });
+            }
+            updateUIRunning(false);
+        }
+
+        // MQTT Connection
+        function connectMQTT(onConnected) {
+            const officerId = getOfficerId();
+            const clientId = 'Officer_' + officerId + '_' + Math.random().toString(16).substr(2, 4);
+
+            mqttClient = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, clientId);
+
+            mqttClient.onConnectionLost = function (responseObject) {
+                if (responseObject.errorCode !== 0 && isTracking) {
+                    console.warn('MQTT Connection Lost:', responseObject.errorMessage);
+                    setTimeout(() => { if (isTracking) connectMQTT(null); }, 3000);
+                }
+            };
+
+            const options = {
+                useSSL: true,
+                timeout: 5,
+                keepAliveInterval: 30,
+                cleanSession: true,
+                onSuccess: function () {
+                    console.log('Connected to MQTT Broker!');
+                    if (onConnected) onConnected();
+                },
+                onFailure: function (err) {
+                    console.warn('HiveMQ failed, trying EMQX...', err);
+                    mqttClient = new Paho.MQTT.Client(FALLBACK_BROKER, FALLBACK_PORT, clientId);
+                    mqttClient.connect({
+                        useSSL: true,
+                        timeout: 5,
+                        onSuccess: onConnected,
+                        onFailure: () => alert('Network error connecting to tracking broker. Check mobile data.')
+                    });
+                }
+            };
+
+            mqttClient.connect(options);
+        }
+
+        function getOfficerId() {
+            const phone = document.getElementById('input-phone').value.replace(/\D/g, '');
+            const ps = document.getElementById('input-ps').value.replace(/\s+/g, '_');
+            const route = document.getElementById('input-route').value.replace(/\s+/g, '_');
+            return phone || `${ps}_Route_${route}`;
+        }
+
+        // On Location Received
+        function onLocationSuccess(position) {
+            if (!isTracking) return;
+
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = Math.round(position.coords.accuracy || 0);
+            const speedKmh = position.coords.speed ? (position.coords.speed * 3.6).toFixed(1) : '0.0';
+            const heading = position.coords.heading || 0;
+            const timeStr = new Date().toLocaleTimeString();
+
+            // Update Telemetry Display
+            document.getElementById('stat-speed').innerHTML = `${speedKmh} <span class="text-[10px] font-normal text-slate-400">km/h</span>`;
+            document.getElementById('stat-accuracy').innerHTML = `±${accuracy} <span class="text-[10px] font-normal text-slate-400">m</span>`;
+            document.getElementById('stat-coords').innerText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            document.getElementById('stat-time').innerText = timeStr;
+
+            // Update Mini Map
+            updateMiniMap(lat, lng, accuracy);
+
+            // Publish Payload via MQTT
+            const payload = {
+                officerId: getOfficerId(),
+                name: document.getElementById('input-name').value.trim() || 'Duty Officer',
+                ps: document.getElementById('input-ps').value.trim(),
+                route: document.getElementById('input-route').value.trim(),
+                phone: document.getElementById('input-phone').value.trim(),
+                lat: lat,
+                lng: lng,
+                accuracy: accuracy,
+                speed: parseFloat(speedKmh) || 0,
+                heading: heading,
+                timestamp: Date.now()
+            };
+
+            if (mqttClient && mqttClient.isConnected()) {
+                const message = new Paho.MQTT.Message(JSON.stringify(payload));
+                message.destinationName = `election_maps_skl/officers/${payload.officerId}`;
+                message.qos = 0;
+                mqttClient.send(message);
+
+                pingsCount++;
+                document.getElementById('pings-sent-badge').innerText = `${pingsCount} Pings Sent`;
+            }
+        }
+
+        function onLocationError(err) {
+            console.warn('Geolocation Error:', err);
+            let msg = 'GPS Signal Searching...';
+            if (err.code === 1) msg = 'Location Permission Denied! Please Allow Location in Browser.';
+            else if (err.code === 2) msg = 'Position Unavailable. Turn on Phone GPS.';
+            else if (err.code === 3) msg = 'GPS Timeout. Waiting for signal...';
+            document.getElementById('status-text').innerText = msg;
+        }
+
+        // Mini Map
+        function initMiniMap() {
+            if (miniMap) return;
+            miniMap = L.map('mini-map', { zoomControl: false, attributionControl: false }).setView([18.4, 83.9], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(miniMap);
+        }
+
+        function updateMiniMap(lat, lng, accuracy) {
+            if (!miniMap) return;
+            miniMap.setView([lat, lng], 16);
+
+            if (!marker) {
+                const pinIcon = L.divIcon({
+                    className: 'custom-car-pin',
+                    html: `
+                        <div class="radar-pulse" style="width: 38px; height: 38px; border-radius: 50%; background: #10b981; color: white; display: flex; align-items: center; justify-content: center; border: 2.5px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 16px;">
+                            <i class="fa-solid fa-car-side"></i>
+                        </div>
+                    `,
+                    iconSize: [38, 38],
+                    iconAnchor: [19, 19]
+                });
+                marker = L.marker([lat, lng], { icon: pinIcon }).addTo(miniMap);
+                accuracyCircle = L.circle([lat, lng], { radius: accuracy, color: '#10b981', weight: 1, fillColor: '#10b981', fillOpacity: 0.15 }).addTo(miniMap);
+            } else {
+                marker.setLatLng([lat, lng]);
+                accuracyCircle.setLatLng([lat, lng]);
+                accuracyCircle.setRadius(accuracy);
+            }
+        }
+
+        // UI State Switcher
+        function updateUIRunning(running) {
+            const btn = document.getElementById('toggle-tracking-btn');
+            const dot = document.getElementById('status-dot');
+            const statusTxt = document.getElementById('status-text');
+            const setupCard = document.getElementById('setup-card');
+            const telemetryCard = document.getElementById('telemetry-card');
+
+            if (running) {
+                btn.className = 'w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-wider bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 active:scale-98 text-white shadow-xl flex items-center justify-center gap-2.5 transition cursor-pointer';
+                btn.innerHTML = '<i class="fa-solid fa-circle-stop text-lg"></i><span>STOP LIVE GPS TRACKING</span>';
+
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping';
+                statusTxt.innerText = 'ONLINE • Broadcasting Live Location';
+
+                setupCard.classList.add('hidden');
+                telemetryCard.classList.remove('hidden');
+            } else {
+                btn.className = 'w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-98 text-white shadow-xl flex items-center justify-center gap-2.5 transition cursor-pointer';
+                btn.innerHTML = '<i class="fa-solid fa-satellite-dish text-lg"></i><span>START LIVE GPS TRACKING</span>';
+
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400';
+                statusTxt.innerText = 'GPS OFF • Ready to Start';
+
+                setupCard.classList.remove('hidden');
+                telemetryCard.classList.add('hidden');
+            }
+        }
+
+        // Screen WakeLock API
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    document.addEventListener('visibilitychange', async () => {
+                        if (wakeLock !== null && document.visibilityState === 'visible' && isTracking) {
+                            wakeLock = await navigator.wakeLock.request('screen');
+                        }
+                    });
+                }
+            } catch (err) {
+                console.log('WakeLock error:', err);
+            }
+        }
+    </script>
+</body>
+</html>
