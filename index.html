@@ -283,6 +283,34 @@
         <section id="tab-map" class="hidden space-y-2">
             <div class="bg-white p-2.5 rounded-lg shadow-sm border border-slate-200">
                 <!-- Map Filter Bar (Responsive Flex with ZERO horizontal overflow) -->
+                <!-- Row 1: Quick Category Filter Pills & Report Data Table Toggle (Matching Polling Station Report) -->
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
+                    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span class="font-bold text-slate-700 mr-1 flex items-center gap-1">
+                            <i class="fa-solid fa-filter text-blue-600"></i> Category Filter:
+                        </span>
+                        <button type="button" onclick="setMapQuickCategory('')" id="map-pill-cat-all" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-600 text-white transition shadow-sm">
+                            All (<span id="map-cat-count-all">0</span>)
+                        </button>
+                        <button type="button" onclick="setMapQuickCategory('NORMAL')" id="map-pill-cat-normal" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition">
+                            ðŸŸ¢ Normal (<span id="map-cat-count-normal">0</span>)
+                        </button>
+                        <button type="button" onclick="setMapQuickCategory('SENSITIVE')" id="map-pill-cat-sensitive" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition">
+                            ðŸŸ¡ Sensitive (<span id="map-cat-count-sensitive">0</span>)
+                        </button>
+                        <button type="button" onclick="setMapQuickCategory('CRITICAL')" id="map-pill-cat-critical" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-300 transition">
+                            ðŸŸ  Critical (<span id="map-cat-count-critical">0</span>)
+                        </button>
+                        <button type="button" onclick="setMapQuickCategory('HYPER SENSITIVE')" id="map-pill-cat-hyper" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 transition">
+                            ðŸ”´ Hyper Sensitive (<span id="map-cat-count-hyper">0</span>)
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="toggleMapReportTable()" id="toggle-map-table-btn" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold px-2.5 py-1 rounded text-xs border border-indigo-300 flex items-center gap-1.5 transition shadow-xs cursor-pointer" title="View matching report table data under map">
+                            <i class="fa-solid fa-table-list text-indigo-600"></i> Polling Stations Table (<span id="map-table-shown-count">0</span>)
+                        </button>
+                    </div>
+                </div>
                 <div class="flex flex-wrap items-end gap-2.5">
                     <!-- Police Station Filter -->
                     <div class="flex-1 min-w-[140px] max-w-xs">
@@ -309,6 +337,17 @@
                             <option value="SENSITIVE">Sensitive</option>
                             <option value="CRITICAL">Critical</option>
                             <option value="HYPER SENSITIVE">Hyper Sensitive</option>
+                        </select>
+                    </div>
+
+                    <!-- Distance Filter in Live Route Map (Matching Polling Station Report) -->
+                    <div class="w-28 sm:w-32 min-w-[100px]">
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Distance (PS)</label>
+                        <select id="map-filter-distance" onchange="applyMapFilters()" class="w-full border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white">
+                            <option value="">-- All Distances --</option>
+                            <option value="near">&le; 5 KM (Near)</option>
+                            <option value="medium">5 - 12 KM</option>
+                            <option value="far">&gt; 12 KM (Far)</option>
                         </select>
                     </div>
 
@@ -407,6 +446,43 @@
                     <div class="flex items-center gap-1.5"><span class="w-4 h-1 bg-red-600 inline-block border-t border-b border-white"></span> Police Patrol Road Route</div>
                 </div>
             </div>
+
+            <!-- ================= SELECTED STATIONS REPORT DATA TABLE UNDER MAP ================= -->
+            <div id="map-stations-report-container" class="hidden bg-white p-3 rounded-lg shadow-sm border border-slate-200 space-y-2 mt-2">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-table-list text-blue-600"></i> Polling Station Report Data (Matching Active Map Filter)
+                        </h3>
+                        <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded" id="map-report-data-count">0 Stations</span>
+                    </div>
+                    <button type="button" onclick="toggleMapReportTable()" class="text-slate-400 hover:text-slate-700 text-xs font-bold px-2 py-1 rounded hover:bg-slate-100 transition">
+                        <i class="fa-solid fa-xmark mr-0.5"></i> Close Table
+                    </button>
+                </div>
+                <div class="overflow-x-auto max-h-96 overflow-y-auto border border-slate-200 rounded-lg">
+                    <table class="w-full text-[11px] divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-900 text-white sticky top-0 z-10 text-[11px]">
+                            <tr>
+                                <th class="p-2 text-center w-12">S.No</th>
+                                <th class="p-2">Mandal / ZPTC</th>
+                                <th class="p-2">MPTC Segment</th>
+                                <th class="p-2 text-center">Route</th>
+                                <th class="p-2">Route Incharge</th>
+                                <th class="p-2">PS Name</th>
+                                <th class="p-2">Polling Station Location (PSL)</th>
+                                <th class="p-2 text-center">Voters</th>
+                                <th class="p-2">BLO Contact</th>
+                                <th class="p-2 text-center">Distance</th>
+                                <th class="p-2 text-center">Sensitivity</th>
+                                <th class="p-2 text-center w-16">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="map-report-data-tbody" class="divide-y divide-slate-100 bg-white">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </section>
 
         <!-- ================= TAB 3: POLLING STATIONS REPORT (TABLE) ================= -->
@@ -441,6 +517,10 @@
                     <div class="flex items-center gap-2">
                         <!-- Dynamic Column Position Editor & Visibility Menu -->
                         <div class="relative inline-block text-left">
+                        <!-- 1-Click Sync & View on Live Route Map -->
+                        <button type="button" onclick="syncAndOpenLiveRouteMap()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer whitespace-nowrap" title="Open these filtered stations directly on Live Route Map">
+                            <i class="fa-solid fa-map-location-dot text-amber-400"></i> View on Live Route Map
+                        </button>
                             <button onclick="toggleColumnMenu()" class="bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded text-xs border border-blue-300 flex items-center gap-1.5 transition shadow-xs">
                                 <i class="fa-solid fa-table-columns text-blue-600"></i> Edit Columns (◀ / ▶) <i class="fa-solid fa-chevron-down text-[10px]"></i>
                             </button>
@@ -1040,7 +1120,7 @@
 
         // Initialize Data (LocalStorage -> window.INITIAL_STATIONS -> fetch fallback)
         async function initializeDataset() {
-            const DATASET_VERSION = "2026-11-01_v16_standard";
+            const DATASET_VERSION = "2026-11-01_v17_map_report_sync";
             const savedVer = localStorage.getItem('POLICE_ELECTION_DATASET_VERSION');
             if (savedVer !== DATASET_VERSION) {
                 localStorage.removeItem('POLICE_ELECTION_STATIONS_DATA');
@@ -1149,6 +1229,11 @@
             if (routeTabPsSelect) routeTabPsSelect.innerHTML = '<option value="">-- సెలెక్ట్ పోలీస్ స్టేషన్ --</option>' + psOptions;
 
             // Populate Table Routes
+            // Populate Live Route Map Routes with Natural Sorting
+            const mapRouteSelect = document.getElementById('map-filter-route');
+            if (mapRouteSelect) {
+                mapRouteSelect.innerHTML = '<option value="">-- All Routes --</option>' + sortedRoutes.map(r => `<option value="${r}">Route - ${r}</option>`).join('');
+            }
             const tableRouteSelect = document.getElementById('table-filter-route');
             if (tableRouteSelect) {
                 tableRouteSelect.innerHTML = '<option value="">-- All Routes --</option>' + sortedRoutes.map(r => `<option value="${r}">Route - ${r}</option>`).join('');
@@ -1477,10 +1562,16 @@
                 allStations.filter(s => (s.psname || '').trim() === psname.trim()).forEach(s => {
                     if (s.route_no) routesInPS.add(s.route_no.trim());
                 });
-                optsHtml += Array.from(routesInPS).sort().map(r => `<option value="${r}">Route - ${r}</option>`).join('');
+                const sorted = Array.from(routesInPS).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                optsHtml += sorted.map(r => `<option value="${r}">Route - ${r}</option>`).join('');
+            } else {
+                const allRoutesSet = new Set();
+                allStations.forEach(s => { if (s.route_no) allRoutesSet.add(s.route_no.trim()); });
+                const sorted = Array.from(allRoutesSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                optsHtml += sorted.map(r => `<option value="${r}">Route - ${r}</option>`).join('');
             }
             routeSelect.innerHTML = optsHtml;
-
+            routeSelect.value = '';
             applyMapFilters();
         }
 
@@ -1535,13 +1626,52 @@
             if (mainRoutesGroup) mainRoutesGroup.clearLayers();
 
             // Strict filtering: ONLY matching stations are allowed!
+            // Calculate category counts for Live Route Map pills
+            let mcAll = 0, mcNormal = 0, mcSensitive = 0, mcCritical = 0, mcHyper = 0;
+            allStations.forEach(s => {
+                mcAll++;
+                const cat = (s.categorization || 'NORMAL').trim().toUpperCase();
+                if (cat === 'HYPER SENSITIVE') mcHyper++;
+                else if (cat === 'CRITICAL') mcCritical++;
+                else if (cat === 'SENSITIVE') mcSensitive++;
+                else mcNormal++;
+            });
+            if (document.getElementById('map-cat-count-all')) document.getElementById('map-cat-count-all').innerText = mcAll.toLocaleString();
+            if (document.getElementById('map-cat-count-normal')) document.getElementById('map-cat-count-normal').innerText = mcNormal.toLocaleString();
+            if (document.getElementById('map-cat-count-sensitive')) document.getElementById('map-cat-count-sensitive').innerText = mcSensitive.toLocaleString();
+            if (document.getElementById('map-cat-count-critical')) document.getElementById('map-cat-count-critical').innerText = mcCritical.toLocaleString();
+            if (document.getElementById('map-cat-count-hyper')) document.getElementById('map-cat-count-hyper').innerText = mcHyper.toLocaleString();
+
+            const distFilter = (document.getElementById('map-filter-distance')?.value || '').trim();
+
+            // Strict filtering matching Polling Station Report logic
             filteredMapStations = allStations.filter(s => {
                 if (selectedPS && (s.psname || '').trim() !== selectedPS) return false;
                 if (selectedRoute && (s.route_no || '').trim() !== selectedRoute) return false;
-                if (selectedCat && (s.categorization || 'NORMAL').trim().toUpperCase() !== selectedCat) return false;
+                
+                // Category filter (dropdown or pill)
+                const cat = (s.categorization || 'NORMAL').trim().toUpperCase();
+                if (mapActiveQuickCategory) {
+                    if (cat !== mapActiveQuickCategory) return false;
+                } else if (selectedCat && cat !== selectedCat) {
+                    return false;
+                }
+
+                // Distance filter
+                if (distFilter) {
+                    const d = parseFloat(s.distance_from_ps_kms) || 0;
+                    if (distFilter === 'near' && d > 5) return false;
+                    if (distFilter === 'medium' && (d <= 5 || d > 12)) return false;
+                    if (distFilter === 'far' && d <= 12) return false;
+                }
+
                 if (searchText && !matchStationLocationSearch(s, searchText)) return false;
                 return true;
             });
+
+            if (document.getElementById('btn-sync-map-count') && typeof tableFilteredStations !== 'undefined') {
+                document.getElementById('btn-sync-map-count').innerText = tableFilteredStations.length;
+            }
 
             document.getElementById('legend-total-shown').innerText = `${filteredMapStations.length} Shown`;
 
@@ -1681,6 +1811,13 @@
                         L.popup({ maxWidth: 440, minWidth: 320 }).setLatLng([fLat, fLng]).setContent(buildStationPopupHtml(first)).openOn(mainMap);
                     }
                 }, 350);
+            }
+
+            // Update Report Table below map
+            const mapTableBtnCount = document.getElementById('map-table-shown-count');
+            if (mapTableBtnCount) mapTableBtnCount.innerText = filteredMapStations.length;
+            if (isMapReportTableVisible) {
+                renderMapReportTable();
             }
         }
 
@@ -3379,6 +3516,10 @@
                 return true;
             });
 
+            if (document.getElementById('btn-sync-map-count') && typeof tableFilteredStations !== 'undefined') {
+                document.getElementById('btn-sync-map-count').innerText = tableFilteredStations.length;
+            }
+
             // Sorting logic
             tableFilteredStations.sort((a, b) => {
                 let valA = a[tableSortColumn];
@@ -3994,6 +4135,136 @@
             XLSX.utils.book_append_sheet(wb, ws, "Polling Stations");
             XLSX.writeFile(wb, `Election_Polling_Stations_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
+        // ================= LIVE ROUTE MAP & POLLING STATION REPORT SYNC =================
+        let mapActiveQuickCategory = '';
+        let isMapReportTableVisible = false;
+
+        function setMapQuickCategory(cat) {
+            mapActiveQuickCategory = cat;
+            const pills = {
+                '': 'map-pill-cat-all',
+                'NORMAL': 'map-pill-cat-normal',
+                'SENSITIVE': 'map-pill-cat-sensitive',
+                'CRITICAL': 'map-pill-cat-critical',
+                'HYPER SENSITIVE': 'map-pill-cat-hyper'
+            };
+            for (const k in pills) {
+                const el = document.getElementById(pills[k]);
+                if (!el) continue;
+                if (k === cat) {
+                    el.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-600 text-white transition shadow-sm';
+                } else {
+                    el.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition';
+                }
+            }
+            const catSelect = document.getElementById('map-filter-category');
+            if (catSelect) catSelect.value = cat;
+            applyMapFilters();
+        }
+
+        function toggleMapReportTable() {
+            const container = document.getElementById('map-stations-report-container');
+            const btn = document.getElementById('toggle-map-table-btn');
+            if (!container) return;
+            isMapReportTableVisible = !isMapReportTableVisible;
+            if (isMapReportTableVisible) {
+                container.classList.remove('hidden');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-eye-slash text-indigo-600"></i> Hide Report Table';
+                renderMapReportTable();
+            } else {
+                container.classList.add('hidden');
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-table-list text-indigo-600"></i> Polling Stations Table (${filteredMapStations ? filteredMapStations.length : 0})`;
+            }
+        }
+
+        function renderMapReportTable() {
+            const tbody = document.getElementById('map-report-data-tbody');
+            const countEl = document.getElementById('map-report-data-count');
+            const btnCountEl = document.getElementById('map-table-shown-count');
+            if (!tbody) return;
+
+            const stations = filteredMapStations || allStations;
+            if (countEl) countEl.innerText = `${stations.length} Stations`;
+            if (btnCountEl) btnCountEl.innerText = stations.length;
+
+            if (stations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="12" class="p-6 text-center text-slate-400">No matching stations found.</td></tr>';
+                return;
+            }
+
+            let rowsHtml = '';
+            const maxRows = Math.min(stations.length, 300); // Fast responsive render
+            for (let idx = 0; idx < maxRows; idx++) {
+                const s = stations[idx];
+                const cat = (s.categorization || 'NORMAL').trim().toUpperCase();
+                const badgeClass = SENSITIVITY_COLORS[cat]?.badge || 'bg-slate-100 text-slate-800';
+                const lat = parseFloat(s.latitude);
+                const lng = parseFloat(s.longitude);
+                const dist = s.distance_from_ps_kms ? `${s.distance_from_ps_kms} KM` : '-';
+
+                rowsHtml += `
+                    <tr class="hover:bg-blue-50/50 transition">
+                        <td class="p-2 text-center text-slate-500 font-bold">${idx + 1}</td>
+                        <td class="p-2 font-medium text-slate-800 break-words">${s.mandal_zptc_segment || '-'}</td>
+                        <td class="p-2 text-slate-600 break-words">${s.mptc_segment || '-'}</td>
+                        <td class="p-2 text-center"><span class="bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded text-[10px] border border-blue-200">Route ${s.route_no || '-'}</span></td>
+                        <td class="p-2 text-slate-700 leading-tight">${formatPhoneLinks(s.route_incharge || s.route_staff || '-')}</td>
+                        <td class="p-2 font-semibold text-blue-900">${s.psname || '-'}</td>
+                        <td class="p-2 font-bold text-slate-900 break-words">${s.polling_station_location || '-'}</td>
+                        <td class="p-2 text-center font-bold text-blue-600">${s.no_of_voters ? Number(s.no_of_voters).toLocaleString() : '0'}</td>
+                        <td class="p-2 text-slate-600">${formatPhoneLinks(s.blo_contact_no || '-')}</td>
+                        <td class="p-2 text-center text-rose-700 font-bold">${dist}</td>
+                        <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}">${cat}</span></td>
+                        <td class="p-2 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button type="button" onclick="locateStationOnMap(${s.id})" title="Locate on Map" class="w-6 h-6 rounded bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 flex items-center justify-center transition shadow-2xs cursor-pointer">
+                                    <i class="fa-solid fa-crosshairs text-[10px]"></i>
+                                </button>
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" title="Navigate on Google Maps" class="w-6 h-6 rounded bg-emerald-100 hover:bg-emerald-600 hover:text-white text-emerald-700 flex items-center justify-center transition shadow-2xs">
+                                    <i class="fa-solid fa-diamond-turn-right text-[10px]"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            if (stations.length > maxRows) {
+                rowsHtml += `<tr><td colspan="12" class="p-2 text-center bg-slate-50 text-slate-500 font-semibold text-xs">... and ${stations.length - maxRows} more stations shown on map</td></tr>`;
+            }
+            tbody.innerHTML = rowsHtml;
+        }
+
+        function syncAndOpenLiveRouteMap() {
+            // Read active filters from Polling Stations Report
+            const psVal = (document.getElementById('table-filter-ps')?.value || '').trim();
+            const routeVal = (document.getElementById('table-filter-route')?.value || '').trim();
+            const distVal = (document.getElementById('table-filter-distance')?.value || '').trim();
+            const searchVal = (document.getElementById('table-search-input')?.value || '').trim();
+            const catVal = activeQuickCategory || '';
+
+            // Transfer to Live Route Map
+            switchTab('map');
+
+            const mapPs = document.getElementById('map-filter-psname');
+            const mapRoute = document.getElementById('map-filter-route');
+            const mapDist = document.getElementById('map-filter-distance');
+            const mapSearch = document.getElementById('map-search-text');
+
+            if (mapPs) mapPs.value = psVal;
+            onMapPSChange(psVal);
+
+            if (mapRoute) mapRoute.value = routeVal;
+            if (mapDist) mapDist.value = distVal;
+            if (mapSearch) mapSearch.value = searchVal;
+            setMapQuickCategory(catVal);
+
+            // Automatically open report data table under map so user sees the report data directly on Live Route Map!
+            const tableContainer = document.getElementById('map-stations-report-container');
+            if (tableContainer && tableContainer.classList.contains('hidden')) {
+                toggleMapReportTable();
+            }
+        }
+
     </script>
 </body>
 </html>
