@@ -14,25 +14,8 @@
     <!-- Leaflet CSS & JS (Deferred for fast mobile rendering) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Paho MQTT client for Live Officer GPS Tracking -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
     <style>
-        .officer-radar-pulse {
-            position: relative;
-        }
-        .officer-radar-pulse::before {
-            content: '';
-            position: absolute;
-            top: -6px; left: -6px; right: -6px; bottom: -6px;
-            border-radius: 50%;
-            border: 2px solid #2563eb;
-            animation: officer-pulse 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-        }
-        @keyframes officer-pulse {
-            0% { transform: scale(0.8); opacity: 1; }
-            100% { transform: scale(2.2); opacity: 0; }
-        }
         .ps-tooltip-badge {
             background-color: rgba(255, 255, 255, 0.96);
             border: 1px solid #2563eb;
@@ -152,11 +135,6 @@
                     </button>
                     <button onclick="switchTab('map')" id="tab-btn-map" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
                         <i class="fa-solid fa-map-location-dot text-amber-400"></i> Live Route Map
-                    </button>
-                    <button onclick="switchTab('livelocation')" id="tab-btn-livelocation" class="px-3.5 py-1.5 rounded-lg font-semibold text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm relative">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                        <i class="fa-solid fa-satellite-dish text-emerald-400"></i> Live Location
-                        <span id="nav-live-count" class="hidden bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
                     </button>
                     <button onclick="openAddModal()" class="px-3.5 py-1.5 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-plus"></i> Add PS
@@ -416,12 +394,6 @@
             <div class="relative w-full h-[calc(100vh-175px)] min-h-[500px] rounded-lg shadow-md border border-slate-200 overflow-hidden bg-slate-200">
                 <div id="main-map" class="w-full h-full"></div>
 
-                <!-- Floating Live Officers Tracker Pill -->
-                <button id="live-officers-badge" onclick="zoomToLiveOfficers()" class="hidden absolute top-3 left-14 z-[1000] bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg border border-emerald-400 text-xs font-bold text-emerald-800 flex items-center gap-2 hover:bg-emerald-50 transition cursor-pointer">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                    <span id="live-officers-text">0 Live Officers</span>
-                </button>
-
                 <!-- Floating Map Legend -->
                 <div class="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm p-2 rounded-lg shadow-lg border border-slate-200 text-[10px] space-y-1">
                     <div class="font-bold text-slate-700 border-b pb-0.5 mb-1 flex items-center justify-between gap-3">
@@ -433,65 +405,6 @@
                     <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-orange-500 text-white font-black text-[9px] flex items-center justify-center shadow-sm">C</span> Critical Polling Station</div>
                     <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-rose-600 text-white font-black text-[9px] flex items-center justify-center shadow-sm">H</span> Hyper Sensitive Polling Station</div>
                     <div class="flex items-center gap-1.5"><span class="w-4 h-1 bg-red-600 inline-block border-t border-b border-white"></span> Police Patrol Road Route</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================= TAB: LIVE LOCATION (OFFICER GPS TRACKING) ================= -->
-        <section id="tab-livelocation" class="hidden space-y-2.5">
-            <!-- Header & Control Bar -->
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md text-lg">
-                            <i class="fa-solid fa-satellite-dish animate-pulse"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h2 class="text-sm sm:text-base font-black text-slate-900 leading-tight">OFFICER LIVE GPS TRACKING</h2>
-                                <span id="live-tab-status-pill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> 0 Active Officers
-                                </span>
-                            </div>
-                            <p class="text-[11px] text-slate-500">&#3114;&#314B;&#3122;&#3136;&#3128;&#3149; &#3077;&#3111;&#3135;&#3093;&#3134;&#3120;&#3137;&#3122; &#3120;&#3135;&#3119;&#3122;&#3149;-&#3103;&#3176;&#3118;&#3149; &#3093;&#3110;&#3122;&#3135;&#3093;&#3122;&#3137; &amp; &#3122;&#3149;&#3119;&#3093;&#3143;&#3127;&#3112;&#3149; &#3118;&#3134;&#3112;&#3135;&#3103;&#3120;&#3135;&#3074;&#3095;&#3149; &#3093;&#3118;&#3134;&#3074;&#3105;&#3149; &#3128;&#3142;&#3074;&#3103;&#3120;&#3149;</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <select id="live-filter-ps" onchange="filterLiveOfficersByPS(this.value)" class="text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-blue-500">
-                            <option value="">All Police Stations (&#3077;&#3112;&#3149;&#3112;&#3135; &#3128;&#3149;&#3103;&#3143;&#3127;&#3112;&#3149;&#3122;&#3137;)</option>
-                        </select>
-                        <button type="button" onclick="zoomToAllLiveOfficers()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer">
-                            <i class="fa-solid fa-crosshairs"></i> Zoom to Officers
-                        </button>
-                        <button type="button" onclick="openSendTrackerModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer">
-                            <i class="fa-brands fa-whatsapp"></i> Send GPS Link
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 h-[calc(100vh-210px)] min-h-[550px]">
-                <div class="lg:col-span-4 bg-white rounded-xl shadow-md border border-slate-200 flex flex-col overflow-hidden">
-                    <div class="p-3 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between">
-                        <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                            <i class="fa-solid fa-shield-halved text-blue-600"></i> Active Officers Online
-                        </span>
-                        <span id="active-roster-count" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">0 Online</span>
-                    </div>
-                    <div id="live-officers-roster" class="flex-1 overflow-y-auto p-2.5 space-y-2">
-                        <div id="no-officers-placeholder" class="text-center py-10 px-4 text-slate-400">
-                            <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mb-3">
-                                <i class="fa-solid fa-satellite-dish"></i>
-                            </div>
-                            <h4 class="font-bold text-slate-700 text-xs mb-1">&#3114;&#3149;&#3120;&#3128;&#3149;&#3110;&#3137;&#3108;&#3074; &#3102;&#3125;&#3120;&#3138; &#3122;&#3148;&#3125;&#3149;&#3122;&#3147; &#3122;&#3143;&#3120;&#3137;</h4>
-                            <p class="text-[11px] text-slate-500 mb-3">&#3077;&#3111;&#3135;&#3093;&#3134;&#3120;&#3137;&#3122;&#3137; &#3108;&#3118; &#3118;&#3149;&#3119;&#3116;&#3144;&#3122;&#3149;&#3122;&#3147; 'START LIVE GPS' &#3112;&#314a;&#3093;&#3149;&#3093;&#3095;&#3134;&#3112;&#3143; &#3125;&#3134;&#3120;&#3135; &#3125;&#3135;&#3125;&#3120;&#3134;&#3122;&#3137; &#3107;&#3093;&#3149;&#3093;&#3105; &#3093;&#3112;&#3135;&#3114;&#3135;&#3128;&#3149;&#3108;&#3134;&#3119;&#3135;.</p>
-                            <button type="button" onclick="openSendTrackerModal()" class="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer">
-                                <i class="fa-brands fa-whatsapp"></i> &#3078;&#3115;&#3136;&#3128;&#3120;&#3149;&#3093;&#3137; &#3122;&#3135;&#3074;&#3093;&#3149; &#3114;&#3074;&#3114;&#3074;&#3105;&#3135;
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="lg:col-span-8 bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden relative flex flex-col">
-                    <div id="live-location-map" class="w-full flex-1 min-h-[500px] z-10"></div>
                 </div>
             </div>
         </section>
@@ -1127,7 +1040,7 @@
 
         // Initialize Data (LocalStorage -> window.INITIAL_STATIONS -> fetch fallback)
         async function initializeDataset() {
-            const DATASET_VERSION = "2026-11-01_v8_fix_syntax";
+            const DATASET_VERSION = "2026-11-01_v9_revert_stable";
             const savedVer = localStorage.getItem('POLICE_ELECTION_DATASET_VERSION');
             if (savedVer !== DATASET_VERSION) {
                 localStorage.removeItem('POLICE_ELECTION_STATIONS_DATA');
@@ -1171,7 +1084,7 @@
 
         // Tab Switching Logic
         function switchTab(tabId) {
-            ['dashboard', 'map', 'report', 'routewise', 'livelocation'].forEach(t => {
+            ['dashboard', 'map', 'report', 'routewise'].forEach(t => {
                 const el = document.getElementById(`tab-${t}`);
                 const btn = document.getElementById(`tab-btn-${t}`);
                 if (el) {
@@ -1197,10 +1110,6 @@
                         if (mainMap) mainMap.invalidateSize();
                     }, 50);
                 }
-            } else if (tabId === 'livelocation') {
-                setTimeout(() => {
-                    initLiveLocationTab();
-                }, 100);
             } else if (tabId === 'routewise') {
                 setTimeout(() => {
                     initRouteMap();
@@ -1449,175 +1358,6 @@
         }
 
         // ================= TAB 2: LIVE LEAFLET MAP LOGIC =================
-                // ================= LIVE OFFICER GPS TRACKING VIA MQTT =================
-        let liveOfficersGroup = null;
-        let liveOfficersMap = {}; // officerId -> { data, marker }
-        let controlMqttClient = null;
-
-        function initOfficerMQTTTracking() {
-            if (controlMqttClient && controlMqttClient.isConnected()) return;
-            const clientId = 'ControlRoom_' + Math.random().toString(16).substr(2, 6);
-            controlMqttClient = new Paho.MQTT.Client('broker.hivemq.com', 8884, clientId);
-
-            controlMqttClient.onConnectionLost = function (responseObject) {
-                console.warn('Control Room MQTT lost:', responseObject.errorMessage);
-                setTimeout(initOfficerMQTTTracking, 5000);
-            };
-
-            controlMqttClient.onMessageArrived = function (message) {
-                try {
-                    const data = JSON.parse(message.payloadString);
-                    updateLiveOfficerMarker(data);
-                } catch(e) {
-                    console.error('Error parsing live officer message:', e);
-                }
-            };
-
-            controlMqttClient.connect({
-                useSSL: true,
-                timeout: 5,
-                keepAliveInterval: 30,
-                cleanSession: true,
-                onSuccess: function () {
-                    console.log('Control room connected to Live Officer tracking stream!');
-                    controlMqttClient.subscribe('election_maps_skl/officers/#', { qos: 0 });
-                },
-                onFailure: function (err) {
-                    console.warn('HiveMQ failed, trying EMQX...', err);
-                    controlMqttClient = new Paho.MQTT.Client('broker.emqx.io', 8084, clientId);
-                    controlMqttClient.connect({
-                        useSSL: true,
-                        timeout: 5,
-                        keepAliveInterval: 30,
-                        cleanSession: true,
-                        onSuccess: function() {
-                            controlMqttClient.subscribe('election_maps_skl/officers/#', { qos: 0 });
-                        }
-                    });
-                }
-            });
-        }
-
-        function updateLiveOfficerMarker(data) {
-            if (!data || !data.lat || !data.lng || !mainMap) return;
-            const lat = parseFloat(data.lat);
-            const lng = parseFloat(data.lng);
-            if (isNaN(lat) || isNaN(lng)) return;
-
-            if (!liveOfficersGroup) {
-                liveOfficersGroup = L.layerGroup().addTo(mainMap);
-            }
-
-            const officerId = data.officerId || data.phone || `${data.ps}_${data.route}`;
-            const name = data.name || 'Officer On Duty';
-            const ps = data.ps || '';
-            const route = data.route || '';
-            const phone = data.phone || '';
-            const speed = data.speed || 0;
-            const accuracy = data.accuracy || 0;
-            const timeStr = new Date(data.timestamp || Date.now()).toLocaleTimeString();
-
-            const officerIcon = L.divIcon({
-                className: 'custom-officer-pin',
-                html: `
-                    <div class="officer-radar-pulse" style="position: relative; width: 40px; height: 40px; border-radius: 50%; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.45); border: 3px solid #ffffff; font-size: 17px;">
-                        <i class="fa-solid fa-car-side"></i>
-                        <span style="position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; background: #22c55e; border: 2px solid #ffffff;"></span>
-                    </div>
-                `,
-                iconSize: [40, 40],
-                iconAnchor: [20, 20],
-                popupAnchor: [0, -22]
-            });
-
-            const popupHtml = `
-                <div class="p-1 font-sans text-xs min-w-[260px]">
-                    <div class="flex items-center justify-between pb-1.5 border-b mb-1.5">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> LIVE TRACKING
-                        </span>
-                        <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
-                    </div>
-                    <div class="space-y-1 mb-2">
-                        <div class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                            <i class="fa-solid fa-shield-halved text-blue-600"></i> ${name}
-                        </div>
-                        <div class="text-[11px] text-slate-700">
-                            <b>Police Station:</b> <span class="font-semibold text-blue-700">${ps} PS</span>
-                        </div>
-                        <div class="text-[11px] text-slate-700">
-                            <b>Route:</b> <span class="font-bold text-purple-700">Route ${route}</span>
-                        </div>
-                        <div class="text-[11px] text-slate-700">
-                            <b>Contact:</b> <a href="tel:${phone}" class="text-blue-600 font-semibold underline"><i class="fa-solid fa-phone text-[9px] mr-0.5"></i>${phone}</a>
-                        </div>
-                        <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-600">
-                            <span><b>Speed:</b> <b class="text-blue-700">${speed} km/h</b></span>
-                            <span><b>GPS Accuracy:</b> <b class="text-emerald-700">Â±${accuracy} m</b></span>
-                        </div>
-                    </div>
-                    <div class="flex gap-1 pt-1 border-t">
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
-                            <i class="fa-solid fa-diamond-turn-right"></i> Navigate to Officer
-                        </a>
-                        <button type="button" onclick="mainMap.setView([${lat}, ${lng}], 16)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1 px-2 rounded text-[11px] shadow-2xs">
-                            <i class="fa-solid fa-crosshairs"></i> Zoom
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            if (!liveOfficersMap[officerId]) {
-                const marker = L.marker([lat, lng], { icon: officerIcon }).addTo(liveOfficersGroup);
-                marker.bindPopup(popupHtml, { maxWidth: 320 });
-                marker.bindTooltip(`ðŸš“ ${name} [Route ${route}] â€¢ Live ðŸŸ¢`, { permanent: false, direction: 'top', className: 'ps-tooltip-badge' });
-                liveOfficersMap[officerId] = { data: data, marker: marker };
-            } else {
-                const existing = liveOfficersMap[officerId];
-                existing.marker.setLatLng([lat, lng]);
-                existing.marker.setPopupContent(popupHtml);
-                existing.data = data;
-            }
-
-            if (typeof isLiveLocationMapInitialized !== 'undefined' && isLiveLocationMapInitialized) {
-                syncDedicatedMapMarkers();
-            }
-            if (typeof renderLiveOfficersRoster === 'function') {
-                renderLiveOfficersRoster();
-            }
-            updateLiveOfficersCountUI();
-        }
-
-        function updateLiveOfficersCountUI() {
-            const activeCount = Object.keys(liveOfficersMap).length;
-            const badge = document.getElementById('live-officers-badge');
-            const txt = document.getElementById('live-officers-text');
-            if (badge) {
-                if (activeCount > 0) {
-                    badge.classList.remove('hidden');
-                    if (txt) txt.innerHTML = `<b>${activeCount}</b> Live Officer${activeCount > 1 ? 's' : ''} (Click to View)`;
-                } else {
-                    badge.classList.add('hidden');
-                }
-            }
-        }
-
-        function zoomToLiveOfficers() {
-            const keys = Object.keys(liveOfficersMap);
-            if (keys.length === 0) {
-                alert('à°ªà±à°°à°¸à±à°¤à±à°¤à°‚ à°²à±ˆà°µà± à°œà±€à°ªà±€à°Žà°¸à± à°Ÿà±à°°à°¾à°•à°¿à°‚à°—à±â€Œà°²à±‹ à°Žà°µà°°à±‚ à°²à±‡à°°à± (No active officers tracking currently).');
-                return;
-            }
-            if (keys.length === 1) {
-                const item = liveOfficersMap[keys[0]];
-                mainMap.setView([item.data.lat, item.data.lng], 16);
-                item.marker.openPopup();
-            } else {
-                const group = L.featureGroup(keys.map(k => liveOfficersMap[k].marker));
-                mainMap.fitBounds(group.getBounds().pad(0.2));
-            }
-        }
-
         function initMainMap() {
             if (mainMap) return;
 
@@ -1649,8 +1389,6 @@
             // Initialize isolated layer groups (Direct crisp station pins, no cluster numbers)
             mainMarkersGroup = L.layerGroup().addTo(mainMap);
             mainRoutesGroup = L.layerGroup().addTo(mainMap);
-            liveOfficersGroup = L.layerGroup().addTo(mainMap);
-            initOfficerMQTTTracking();
 
             // Load Mandal Boundaries from KMZ using JSZip
             loadMandalBoundaries();
@@ -3584,347 +3322,14 @@
             renderTable();
         }
 
-        // Format phone numbers as clickable dial links and WhatsApp Live Location tracker link
-        // ================= DEDICATED LIVE LOCATION TAB LOGIC =================
-        let liveLocationMap = null;
-        let liveLocationGroup = null;
-        let isLiveLocationMapInitialized = false;
-        let currentLivePSFilter = '';
-
-        function initLiveLocationTab() {
-            if (!isLiveLocationMapInitialized) {
-                liveLocationMap = L.map('live-location-map', {
-                    center: [18.5, 83.9],
-                    zoom: 10,
-                    zoomControl: true
-                });
-
-                const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: 'OpenStreetMap'
-                }).addTo(liveLocationMap);
-
-                const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                    maxZoom: 20,
-                    attribution: 'Google Hybrid'
-                });
-
-                L.control.layers({
-                    "OpenStreetMap": osmLayer,
-                    "Google Satellite Hybrid": googleHybrid
-                }, null, { position: 'topright' }).addTo(liveLocationMap);
-
-                liveLocationGroup = L.layerGroup().addTo(liveLocationMap);
-                isLiveLocationMapInitialized = true;
-
-                populateLiveFilterDropdown();
-            } else {
-                liveLocationMap.invalidateSize();
-            }
-
-            syncDedicatedMapMarkers();
-            renderLiveOfficersRoster();
-        }
-
-        function populateLiveFilterDropdown() {
-            const selectEl = document.getElementById('live-filter-ps');
-            const modalSelect = document.getElementById('modal-tracker-ps');
-            if (!selectEl && !modalSelect) return;
-
-            const psSet = new Set();
-            allStations.forEach(s => {
-                if (s.psname) psSet.add(s.psname.trim());
-            });
-            const sortedPS = Array.from(psSet).sort();
-
-            let opts = '<option value="">All Police Stations (\u0C05\u0C28\u0C4D\u0C28\u0C3F \u0C38\u0C4D\u0C1F\u0C47\u0C37\u0C28\u0C4D\u0C32\u0C41)</option>';
-            let modalOpts = '<option value="">Select Police Station...</option>';
-            sortedPS.forEach(ps => {
-                opts += `<option value="${ps}">${ps} PS</option>`;
-                modalOpts += `<option value="${ps}">${ps} PS</option>`;
-            });
-
-            if (selectEl) selectEl.innerHTML = opts;
-            if (modalSelect) modalSelect.innerHTML = modalOpts;
-        }
-
-        function syncDedicatedMapMarkers() {
-            if (!liveLocationMap || !liveLocationGroup) return;
-            liveLocationGroup.clearLayers();
-
-            const keys = Object.keys(liveOfficersMap);
-            const latlngs = [];
-
-            keys.forEach(k => {
-                const item = liveOfficersMap[k];
-                const d = item.data;
-                if (!d || !d.lat || !d.lng) return;
-                if (currentLivePSFilter && (d.ps || '').trim() !== currentLivePSFilter.trim()) return;
-
-                const lat = parseFloat(d.lat);
-                const lng = parseFloat(d.lng);
-                latlngs.push([lat, lng]);
-
-                const timeStr = new Date(d.timestamp || Date.now()).toLocaleTimeString();
-
-                const icon = L.divIcon({
-                    className: 'custom-officer-pin',
-                    html: `
-                        <div class="officer-radar-pulse" style="position: relative; width: 42px; height: 42px; border-radius: 50%; background: #059669; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(5,150,105,0.55); border: 3px solid #ffffff; font-size: 18px;">
-                            <i class="fa-solid fa-car-side"></i>
-                            <span style="position: absolute; bottom: -2px; right: -2px; width: 13px; height: 13px; border-radius: 50%; background: #22c55e; border: 2px solid #ffffff;"></span>
-                        </div>
-                    `,
-                    iconSize: [42, 42],
-                    iconAnchor: [21, 21],
-                    popupAnchor: [0, -22]
-                });
-
-                const popupContent = `
-                    <div class="p-1 font-sans text-xs min-w-[260px]">
-                        <div class="flex items-center justify-between pb-1.5 border-b mb-1.5">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> LIVE GPS ACTIVE
-                            </span>
-                            <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
-                        </div>
-                        <div class="space-y-1 mb-2">
-                            <div class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                                <i class="fa-solid fa-shield-halved text-emerald-600"></i> ${d.name || 'Officer'}
-                            </div>
-                            <div class="text-[11px] text-slate-700"><b>PS:</b> <span class="font-semibold text-blue-700">${d.ps || 'PS'}</span></div>
-                            <div class="text-[11px] text-slate-700"><b>Route:</b> <span class="font-bold text-purple-700">Route ${d.route || '-'}</span></div>
-                            <div class="text-[11px] text-slate-700"><b>Phone:</b> <a href="tel:${d.phone}" class="text-blue-600 font-semibold underline">${d.phone || '-'}</a></div>
-                            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-600">
-                                <span><b>Speed:</b> <b class="text-blue-700">${d.speed || 0} km/h</b></span>
-                                <span><b>Accuracy:</b> <b class="text-emerald-700">&plusmn;${d.accuracy || 0} m</b></span>
-                            </div>
-                        </div>
-                        <div class="flex gap-1 pt-1 border-t">
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
-                                <i class="fa-solid fa-diamond-turn-right"></i> Navigate
-                            </a>
-                            <a href="tel:${d.phone}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2.5 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
-                                <i class="fa-solid fa-phone"></i> Call
-                            </a>
-                        </div>
-                    </div>
-                `;
-
-                const marker = L.marker([lat, lng], { icon: icon }).addTo(liveLocationGroup);
-                marker.bindPopup(popupContent, { maxWidth: 320 });
-                marker.bindTooltip(`\uD83D\uDE93 ${d.name || 'Officer'} [${d.ps} Route ${d.route}] \u2022 Live \uD83D\uDFE2`, { permanent: false, direction: 'top' });
-            });
-
-            if (latlngs.length > 0) {
-                if (latlngs.length === 1) {
-                    liveLocationMap.setView(latlngs[0], 15);
-                } else {
-                    liveLocationMap.fitBounds(latlngs, { padding: [50, 50] });
-                }
-            }
-        }
-
-        function renderLiveOfficersRoster() {
-            const rosterEl = document.getElementById('live-officers-roster');
-            const countBadge = document.getElementById('active-roster-count');
-            const navBadge = document.getElementById('nav-live-count');
-            const pillEl = document.getElementById('live-tab-status-pill');
-
-            const allKeys = Object.keys(liveOfficersMap);
-            const keys = currentLivePSFilter 
-                ? allKeys.filter(k => (liveOfficersMap[k].data?.ps || '').trim() === currentLivePSFilter.trim())
-                : allKeys;
-
-            const totalCount = allKeys.length;
-            const filteredCount = keys.length;
-
-            if (countBadge) countBadge.innerText = `${filteredCount} Online`;
-            if (pillEl) {
-                pillEl.innerHTML = `<span class="w-2 h-2 rounded-full ${filteredCount > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span> ${filteredCount} Active Officers`;
-                pillEl.className = `inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${filteredCount > 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-amber-50 text-amber-800 border border-amber-300'}`;
-            }
-
-            if (navBadge) {
-                if (totalCount > 0) {
-                    navBadge.innerText = totalCount;
-                    navBadge.classList.remove('hidden');
-                } else {
-                    navBadge.classList.add('hidden');
-                }
-            }
-
-            if (!rosterEl) return;
-
-            if (keys.length === 0) {
-                rosterEl.innerHTML = `
-                    <div id="no-officers-placeholder" class="text-center py-10 px-4 text-slate-400">
-                        <div class="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mb-3">
-                            <i class="fa-solid fa-satellite-dish"></i>
-                        </div>
-                        <h4 class="font-bold text-slate-700 text-xs mb-1">\u0C2A\u0C4D\u0C30\u0C38\u0C4D\u0C24\u0C41\u0C24\u0C02 \u0C0E\u0C35\u0C30\u0C42 \u0C32\u0C48\u0C35\u0C4D\u200C\u0C32\u0C4B \u0C32\u0C47\u0C30\u0C41</h4>
-                        <p class="text-[11px] text-slate-500 mb-3">\u0C05\u0C27\u0C3F\u0C15\u0C34\u0C30\u0C41\u0C32\u0C41 \u0C24\u0C2E \u0C2E\u0C4A\u0C2C\u0C48\u0C32\u0C4D\u200C\u0C32\u0C4B 'START LIVE GPS' \u0C28\u0C4A\u0C15\u0C4D\u0C15\u0C17\u0C34\u0C28\u0C47 \u0C35\u0C34\u0C30\u0C3F \u0C35\u0C3F\u0C35\u0C30\u0C34\u0C32\u0C41 \u0C07\u0C15\u0C4D\u0C15\u0C21 \u0C15\u0C28\u0C3F\u0C2A\u0C3F\u0C38\u0C4D\u0C24\u0C34\u0C2F\u0C3F.</p>
-                        <button type="button" onclick="openSendTrackerModal()" class="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer">
-                            <i class="fa-brands fa-whatsapp"></i> \u0C06\u0C2B\u0C40\u0C38\u0C30\u0C4D\u200C\u0C15\u0C41 \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C2A\u0C02\u0C2A\u0C02\u0C21\u0C3F
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = '';
-            keys.forEach(k => {
-                const item = liveOfficersMap[k];
-                const d = item.data;
-                const timeStr = new Date(d.timestamp || Date.now()).toLocaleTimeString();
-                html += `
-                    <div class="bg-slate-50 hover:bg-blue-50/50 transition border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2">
-                        <div class="flex items-start justify-between gap-2">
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                                    <h4 class="font-bold text-slate-900 text-xs">${d.name || 'Officer'}</h4>
-                                </div>
-                                <span class="text-[10px] text-blue-700 font-semibold">${d.ps || 'PS'} \u2022 Route ${d.route || '-'}</span>
-                            </div>
-                            <span class="text-[9px] font-mono text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">${timeStr}</span>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-1 text-[10px] bg-white rounded-lg p-1.5 border border-slate-100 text-slate-600">
-                            <div>Speed: <b class="text-blue-700">${d.speed || 0} km/h</b></div>
-                            <div>Accuracy: <b class="text-emerald-700">&plusmn;${d.accuracy || 0}m</b></div>
-                        </div>
-
-                        <div class="flex items-center gap-1 pt-1 border-t border-slate-100">
-                            <a href="tel:${d.phone}" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs">
-                                <i class="fa-solid fa-phone text-[9px]"></i> Call
-                            </a>
-                            <button type="button" onclick="focusDedicatedOfficer(${d.lat}, ${d.lng})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-[11px] flex items-center justify-center gap-1 shadow-2xs cursor-pointer">
-                                <i class="fa-solid fa-crosshairs text-[9px]"></i> Locate
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            rosterEl.innerHTML = html;
-        }
-
-        function zoomToAllLiveOfficers() {
-            const keys = Object.keys(liveOfficersMap);
-            if (keys.length === 0) {
-                alert("\u0C2A\u0C4D\u0C30\u0C38\u0C4D\u0C24\u0C41\u0C24\u0C02 \u0C32\u0C48\u0C35\u0C4D \u0C1C\u0C40\u0C2A\u0C40\u0C0E\u0C38\u0C4D \u0C1F\u0C4D\u0C30\u0C34\u0C15\u0C3F\u0C02\u0C17\u0C4D\u200C\u0C32\u0C4B \u0C0E\u0C35\u0C30\u0C42 \u0C32\u0C47\u0C30\u0C41 (No active officers tracking currently).");
-                return;
-            }
-            if (liveLocationMap) {
-                if (keys.length === 1) {
-                    const item = liveOfficersMap[keys[0]];
-                    liveLocationMap.setView([item.data.lat, item.data.lng], 16);
-                } else {
-                    const group = L.featureGroup(Object.values(liveOfficersMap).map(i => L.marker([i.data.lat, i.data.lng])));
-                    liveLocationMap.fitBounds(group.getBounds().pad(0.2));
-                }
-            }
-        }
-
-        function focusDedicatedOfficer(lat, lng) {
-            if (!liveLocationMap) return;
-            liveLocationMap.setView([lat, lng], 16, { animate: true });
-        }
-
-        function filterLiveOfficersByPS(selectedPS) {
-            currentLivePSFilter = (selectedPS || '').trim();
-            syncDedicatedMapMarkers();
-            renderLiveOfficersRoster();
-        }
-
-        // WhatsApp Tracker Modal functions
-        function openSendTrackerModal(prefillPS, prefillRoute, prefillPhone, prefillOfficer) {
-            populateLiveFilterDropdown();
-            const modal = document.getElementById('sendTrackerModal');
-            if (!modal) return;
-            modal.classList.remove('hidden');
-
-            if (prefillPS) {
-                document.getElementById('modal-tracker-ps').value = prefillPS;
-                onModalTrackerPSChange(prefillPS);
-            }
-            if (prefillRoute) {
-                document.getElementById('modal-tracker-route').value = prefillRoute;
-                onModalTrackerRouteChange(prefillRoute);
-            }
-            if (prefillPhone) {
-                document.getElementById('modal-tracker-phone').value = prefillPhone;
-            }
-            if (prefillOfficer) {
-                document.getElementById('modal-tracker-officer').value = prefillOfficer;
-            }
-        }
-
-        function closeSendTrackerModal() {
-            const modal = document.getElementById('sendTrackerModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        function onModalTrackerPSChange(psname) {
-            const routeSelect = document.getElementById('modal-tracker-route');
-            if (!routeSelect) return;
-            let opts = '<option value="">Select Route...</option>';
-            if (psname) {
-                const routesInPS = new Set();
-                allStations.filter(s => (s.psname || '').trim() === psname.trim()).forEach(s => {
-                    if (s.route_no) routesInPS.add(s.route_no.trim());
-                });
-                Array.from(routesInPS).sort().forEach(r => {
-                    opts += `<option value="${r}">Route ${r}</option>`;
-                });
-            }
-            routeSelect.innerHTML = opts;
-        }
-
-        function onModalTrackerRouteChange(routeNo) {
-            const ps = (document.getElementById('modal-tracker-ps')?.value || '').trim();
-            if (!ps || !routeNo) return;
-            const st = allStations.find(s => (s.psname || '').trim() === ps && (s.route_no || '').trim() === routeNo.trim());
-            if (st) {
-                const offName = st.route_incharge || st.route_staff || '';
-                document.getElementById('modal-tracker-officer').value = offName;
-                const m = offName.match(/(\d{10})/);
-                if (m) {
-                    document.getElementById('modal-tracker-phone').value = m[1];
-                }
-            }
-        }
-
-        function sendTrackerLinkFromModal() {
-            const ps = document.getElementById('modal-tracker-ps')?.value || '';
-            const route = document.getElementById('modal-tracker-route')?.value || '';
-            const phone = (document.getElementById('modal-tracker-phone')?.value || '').replace(/\D/g, '');
-            const officer = document.getElementById('modal-tracker-officer')?.value || '';
-
-            if (!phone || phone.length < 10) {
-                alert('\u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C38\u0C30\u0C48\u0C28 10 \u0C05\u0C02\u0C15\u0C46\u0C32 \u0C2B\u0C4B\u0C28\u0C4D \u0C28\u0C02\u0C2C\u0C30\u0C4D \u0C28\u0C2E\u0C4B\u0C26\u0C41 \u0C1A\u0C47\u0C2F\u0C02\u0C21\u0C3F.');
-                return;
-            }
-
-            const currentUrl = window.location.href.split('?')[0].split('#')[0];
-            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-            const trackUrl = `${baseUrl}track.html?phone=${phone}&ps=${encodeURIComponent(ps)}&route=${encodeURIComponent(route)}&officer=${encodeURIComponent(officer)}`;
-
-            const waMsg = encodeURIComponent("Sir/Madam, Election Duty Live GPS Tracking:\n\u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C08 \u0C15\u0C4D\u0C30\u0C3F\u0C02\u0C26\u0C3F \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C2A\u0C48 \u0C15\u0C4D\u0C32\u0C3F\u0C15\u0C4D \u0C1A\u0C47\u0C38\u0C3F 'START LIVE GPS' \u0C28\u0C4A\u0C15\u0C4D\u0C15\u0C02\u0C21\u0C3F. \u0C2E\u0C40 \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C15\u0C02\u0C1F\u0C4D\u0C30\u0C4B\u0C32\u0C4D \u0C30\u0C42\u0C2E\u0C4D \u0C32\u0C48\u0C35\u0C4D \u0C2E\u0C4D\u0C2F\u0C3E\u0C2A\u0C4D \u0C32\u0C4B \u0C15\u0C28\u0C3F\u0C2A\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C02\u0C26\u0C3F:\n" + trackUrl);
-            window.open(`https://wa.me/91${phone}?text=${waMsg}`, '_blank');
-            closeSendTrackerModal();
-        }
+        // Format phone numbers as clickable dial links and WhatsApp Live Location request button
         function formatPhoneLinks(rawText) {
             if (!rawText || rawText === 'N/A' || rawText === '-') return rawText || '-';
-            
-            const currentUrl = window.location.href.split('?')[0].split('#')[0];
-            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-            
-            return rawText.replace(/(\b[6-9]\d{9}\b)/g, function(match, phone) {
-                const trackUrl = `${baseUrl}track.html?phone=${phone}`;
-                const waMsg = encodeURIComponent("Sir/Madam, Election Duty Live GPS Tracking:\n\u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C08 \u0C15\u0C4D\u0C30\u0C3F\u0C02\u0C26\u0C3F \u0C32\u0C3F\u0C02\u0C15\u0C4D \u0C2A\u0C48 \u0C15\u0C4D\u0C32\u0C3F\u0C15\u0C4D \u0C1A\u0C47\u0C38\u0C3F 'START LIVE GPS' \u0C28\u0C4A\u0C15\u0C4D\u0C15\u0C02\u0C21\u0C3F. \u0C2E\u0C40 \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C15\u0C02\u0C1F\u0C4D\u0C30\u0C4B\u0C32\u0C4D \u0C30\u0C42\u0C2E\u0C4D \u0C32\u0C48\u0C35\u0C4D \u0C2E\u0C4D\u0C2F\u0C3E\u0C2A\u0C4D \u0C32\u0C4B \u0C15\u0C28\u0C3F\u0C2A\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C02\u0C26\u0C3F:\n" + trackUrl);
-                return `<span class="inline-flex items-center gap-1 flex-wrap my-0.5"><a href="tel:${phone}" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>${phone}</a><a href="https://wa.me/91${phone}?text=${waMsg}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Send Live GPS Tracker link on WhatsApp" class="inline-flex items-center gap-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs transition"><i class="fa-brands fa-whatsapp text-[10px]"></i> Live Location</a></span>`;
-            }).replace(/\n/g, '<br>');
+            const waMsg = encodeURIComponent("Election Duty: Please share your current Live Location on WhatsApp / \u0C26\u0C2F\u0C1A\u0C47\u0C38\u0C3F \u0C2E\u0C40 \u0C32\u0C48\u0C35\u0C4D \u0C32\u0C4A\u0C15\u0C47\u0C37\u0C28\u0C4D \u0C37\u0C47\u0C30\u0C4D \u0C1A\u0C47\u0CAF\u0C17\u0C32\u0C30\u0C41.");
+            // Regex to find 10-digit phone numbers
+            return rawText.replace(/(\b[6-9]\d{9}\b)/g, 
+                `<span class="inline-flex items-center gap-1 flex-wrap my-0.5"><a href="tel:$1" onclick="event.stopPropagation()" class="text-blue-600 hover:text-blue-800 font-semibold underline inline-flex items-center gap-0.5"><i class="fa-solid fa-phone text-[9px]"></i>$1</a><a href="https://wa.me/91$1?text=${waMsg}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Request Live Location on WhatsApp" class="inline-flex items-center gap-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-2xs transition"><i class="fa-brands fa-whatsapp text-[10px]"></i> Live Location</a></span>`
+            ).replace(/\n/g, '<br>');
         }
 
         function renderTable() {
@@ -4593,44 +3998,5 @@
             XLSX.writeFile(wb, `Election_Polling_Stations_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
     </script>
-    <!-- SEND LIVE TRACKER LINK MODAL -->
-    <div id="sendTrackerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[9999] hidden p-4">
-        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden transform transition-all">
-            <div class="bg-gradient-to-r from-emerald-600 to-teal-700 p-4 text-white flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <i class="fa-brands fa-whatsapp text-xl"></i>
-                    <h3 class="font-bold text-sm sm:text-base">&#3078;&#3115;&#3136;&#3128;&#3120;&#3149;&#3093;&#3137; &#3122;&#3148;&#3125;&#3149; GPS &#3122;&#3135;&#3074;&#3093;&#3149; &#3114;&#3074;&#3114;&#3074;&#3105;&#3135;</h3>
-                </div>
-                <button onclick="closeSendTrackerModal()" class="text-white/80 hover:text-white text-lg cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-4 space-y-3 text-xs">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">&#3114;&#314B;&#3122;&#3136;&#3128;&#3149; &#3128;&#3149;&#3103;&#3143;&#3127;&#3112;&#3149; (Police Station):</label>
-                    <select id="modal-tracker-ps" onchange="onModalTrackerPSChange(this.value)" class="w-full border border-slate-300 rounded-lg p-2 font-semibold bg-slate-50 focus:ring-1 focus:ring-emerald-500">
-                        <option value="">Select Police Station...</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">&#3120;&#3142;&#3103;&#3149; &#3112;&#3074;&#3116;&#3120;&#3149; (Route):</label>
-                    <select id="modal-tracker-route" onchange="onModalTrackerRouteChange(this.value)" class="w-full border border-slate-300 rounded-lg p-2 font-semibold bg-slate-50 focus:ring-1 focus:ring-emerald-500">
-                        <option value="">Select Route...</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">&#3077;&#3111;&#3135;&#3093;&#3134;&#3120;&#3135; &#3114;&#3143;&#3120;&#3141; / &#3125;&#3135;&#3125;&#3120;&#3134;&#3122;&#3137; (Officer Details):</label>
-                    <input type="text" id="modal-tracker-officer" placeholder="Officer Name" class="w-full border border-slate-300 rounded-lg p-2 font-semibold bg-slate-50" />
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">&#3115;&#314B;&#3112;&#3149; &#3112;&#3074;&#3116;&#3120;&#3149; (10 Digits WhatsApp Phone):</label>
-                    <input type="tel" id="modal-tracker-phone" placeholder="e.g. 9704452107" maxlength="10" class="w-full border border-slate-300 rounded-lg p-2 font-bold text-slate-900 bg-slate-50" />
-                </div>
-                <div class="pt-2">
-                    <button type="button" onclick="sendTrackerLinkFromModal()" class="w-full py-2.5 px-4 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition shadow-md flex items-center justify-center gap-2 cursor-pointer">
-                        <i class="fa-brands fa-whatsapp text-base"></i> WhatsApp &#3122;&#3147; &#3122;&#3135;&#3074;&#3093;&#3149; &#3114;&#3074;&#3114;&#3074;&#3105;&#3135;
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
