@@ -1060,7 +1060,7 @@
 
     <!-- Load Local Stations Dataset & Precomputed Road Routes Geometry -->
     <script src="data/stations.js?v=20261104_v20"></script>
-    <script defer src="data/routes_geometry.js"></script>
+    <script defer src="data/routes_geometry.js?v=20261104_v20"></script>
 
     <!-- Main Application JavaScript Logic -->
     <script>
@@ -2585,6 +2585,89 @@
             container.innerHTML = html;
         }
 
+        // Helper to resolve precomputed road geometry across Roman, Numeric, and Name variations
+        function getPrecomputedRoute(ps, route) {
+            if (!window.PRECOMPUTED_ROUTES) return null;
+            const r = (route || '').toString().trim();
+            const p = (ps || '').toString().trim();
+            const altP = p.includes('Itchapuram') ? p.replace('Itchapuram', 'Ichapuram') : (p.includes('Ichapuram') ? p.replace('Ichapuram', 'Itchapuram') : p);
+            
+            const romanMap = { '1':'I', '2':'II', '3':'III', '4':'IV', '5':'V', '6':'VI', '7':'VII', '8':'VIII', '9':'IX', '10':'X', '11':'XI', '12':'XII', '13':'XIII', '14':'XIV', '15':'XV' };
+            const numMap = { 'I':'1', 'II':'2', 'III':'3', 'IV':'4', 'V':'5', 'VI':'6', 'VII':'7', 'VIII':'8', 'IX':'9', 'X':'10', 'XI':'11', 'XII':'12', 'XIII':'13', 'XIV':'14', 'XV':'15' };
+            
+            const candidates = [
+                `${p}_${r}`,
+                `${altP}_${r}`,
+                romanMap[r] ? `${p}_${romanMap[r]}` : null,
+                romanMap[r] ? `${altP}_${romanMap[r]}` : null,
+                numMap[r.toUpperCase()] ? `${p}_${numMap[r.toUpperCase()]}` : null,
+                numMap[r.toUpperCase()] ? `${altP}_${numMap[r.toUpperCase()]}` : null
+            ];
+            
+            for (const cand of candidates) {
+                if (cand && window.PRECOMPUTED_ROUTES[cand] && window.PRECOMPUTED_ROUTES[cand].coordinates) {
+                    return window.PRECOMPUTED_ROUTES[cand];
+                }
+            }
+            return null;
+        }
+
+        // Generate smooth Catmull-Rom spline curves through coordinates for graceful natural routing curves
+        function getCurvedSplineCoords(points, numInterpolations = 14) {
+            if (!points || points.length < 2) return points || [];
+            if (points.length === 2) {
+                const p1 = points[0];
+                const p2 = points[1];
+                const midLat = (p1[0] + p2[0]) / 2;
+                const midLng = (p1[1] + p2[1]) / 2;
+                const dLat = p2[0] - p1[0];
+                const dLng = p2[1] - p1[1];
+                const curveOffset = 0.08;
+                const ctrlLat = midLat - dLng * curveOffset;
+                const ctrlLng = midLng + dLat * curveOffset;
+                
+                const curved = [];
+                for (let i = 0; i <= numInterpolations; i++) {
+                    const t = i / numInterpolations;
+                    const lat = (1 - t) * (1 - t) * p1[0] + 2 * (1 - t) * t * ctrlLat + t * t * p2[0];
+                    const lng = (1 - t) * (1 - t) * p1[1] + 2 * (1 - t) * t * ctrlLng + t * t * p2[1];
+                    curved.push([lat, lng]);
+                }
+                return curved;
+            }
+
+            const curved = [];
+            const pts = [points[0], ...points, points[points.length - 1]];
+            for (let i = 0; i < pts.length - 3; i++) {
+                const p0 = pts[i];
+                const p1 = pts[i + 1];
+                const p2 = pts[i + 2];
+                const p3 = pts[i + 3];
+
+                for (let j = 0; j < numInterpolations; j++) {
+                    const t = j / numInterpolations;
+                    const t2 = t * t;
+                    const t3 = t2 * t;
+
+                    const lat = 0.5 * (
+                        (2 * p1[0]) +
+                        (-p0[0] + p2[0]) * t +
+                        (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
+                        (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3
+                    );
+                    const lng = 0.5 * (
+                        (2 * p1[1]) +
+                        (-p0[1] + p2[1]) * t +
+                        (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
+                        (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3
+                    );
+                    curved.push([lat, lng]);
+                }
+            }
+            curved.push(points[points.length - 1]);
+            return curved;
+        }
+
         // Draw Driving Paths strictly for the active token & selected route
         async function drawRoadRoutesForMap(routeGroups, routeStaffInfo, token) {
             const rKeys = Object.keys(routeGroups);
@@ -2598,8 +2681,9 @@
                 if (!coords || coords.length < 2) continue;
 
                 // 1. First priority: Check if precomputed true road geometry exists (district-wide road network)
-                if (window.PRECOMPUTED_ROUTES && window.PRECOMPUTED_ROUTES[rKey] && window.PRECOMPUTED_ROUTES[rKey].coordinates) {
-                    drawRoadRouteFromGeometry(window.PRECOMPUTED_ROUTES[rKey].coordinates, window.PRECOMPUTED_ROUTES[rKey].distKm, info, token);
+                const pre = getPrecomputedRoute(info.ps, info.route) || (window.PRECOMPUTED_ROUTES && (window.PRECOMPUTED_ROUTES[rKey] || window.PRECOMPUTED_ROUTES[info.ps + '_' + info.route]));
+                if (pre && pre.coordinates) {
+                    drawRoadRouteFromGeometry(pre.coordinates, pre.distKm, info, token);
                     continue;
                 }
 
@@ -2651,17 +2735,21 @@
             if (token !== currentMapFilterToken || !mainRoutesGroup) return;
             if (coords.length < 2) return;
 
-            const outline = L.polyline(coords, {
+            const curvedCoords = getCurvedSplineCoords(coords);
+
+            const outline = L.polyline(curvedCoords, {
                 color: '#ffffff',
                 weight: 7,
                 opacity: 0.9,
+                smoothFactor: 1.0,
                 interactive: false
             });
 
-            const polyline = L.polyline(coords, {
+            const polyline = L.polyline(curvedCoords, {
                 color: '#dc2626',
-                weight: 4.5,
-                opacity: 0.92,
+                weight: 5,
+                opacity: 0.95,
+                smoothFactor: 1.0,
                 className: 'cursor-pointer'
             });
 
@@ -2686,8 +2774,8 @@
                     const routeCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
                     const distKm = (data.routes[0].distance / 1000).toFixed(1);
 
-                    const outline = L.polyline(routeCoords, { color: '#ffffff', weight: 8, opacity: 0.9, interactive: false });
-                    const polyline = L.polyline(routeCoords, { color: '#dc2626', weight: 5, opacity: 0.95, className: 'cursor-pointer' });
+                    const outline = L.polyline(routeCoords, { color: '#ffffff', weight: 8, opacity: 0.9, smoothFactor: 1.0, interactive: false });
+                    const polyline = L.polyline(routeCoords, { color: '#dc2626', weight: 5, opacity: 0.95, smoothFactor: 1.0, className: 'cursor-pointer' });
 
                     const popupHtml = buildRouteVillagesPopupHtml(info, distKm);
                     polyline.bindPopup(popupHtml, { maxWidth: 395, minWidth: 320, maxHeight: 460 });
@@ -3850,16 +3938,16 @@
             listContainer.innerHTML = listHtml;
 
             // Check precomputed real road driving geometry first for instant loading
-            const rKey = `${selectedPS}_${selectedRoute}`;
-            if (window.PRECOMPUTED_ROUTES && window.PRECOMPUTED_ROUTES[rKey] && window.PRECOMPUTED_ROUTES[rKey].coordinates) {
-                const pre = window.PRECOMPUTED_ROUTES[rKey];
+            const pre = getPrecomputedRoute(selectedPS, selectedRoute);
+            if (pre && pre.coordinates) {
                 const routeCoords = pre.coordinates;
                 const drivingKm = pre.distKm ? `${pre.distKm} km (Real Road)` : 'Real Road';
                 document.getElementById('route-total-km').innerText = drivingKm;
 
-                L.polyline(routeCoords, { color: '#ffffff', weight: 8, opacity: 0.9 }).addTo(routeMap);
-                L.polyline(routeCoords, { color: '#dc2626', weight: 6, opacity: 1.0 }).addTo(routeMap);
+                L.polyline(routeCoords, { color: '#ffffff', weight: 8, opacity: 0.9, smoothFactor: 1.0 }).addTo(routeMap);
+                L.polyline(routeCoords, { color: '#dc2626', weight: 6, opacity: 1.0, smoothFactor: 1.0 }).addTo(routeMap);
                 routeMap.fitBounds(routeCoords, { padding: [40, 40] });
+                        return;
                 return;
             }
 
@@ -3881,12 +3969,15 @@
                         L.polyline(routeCoords, { color: '#dc2626', weight: 6, opacity: 1.0 }).addTo(routeMap);
 
                         routeMap.fitBounds(routeCoords, { padding: [40, 40] });
+                        return;
                     }
                 } catch(e) {
-                    console.warn('OSRM error, falling back to straight lines:', e);
-                    L.polyline(latlngs, { color: '#dc2626', weight: 4, dashArray: '5, 5' }).addTo(routeMap);
-                    routeMap.fitBounds(latlngs, { padding: [40, 40] });
+                    console.warn('OSRM error, falling back to curved path:', e);
                 }
+                const curved = getCurvedSplineCoords(latlngs);
+                L.polyline(curved, { color: '#ffffff', weight: 8, opacity: 0.9, smoothFactor: 1.0 }).addTo(routeMap);
+                L.polyline(curved, { color: '#dc2626', weight: 6, opacity: 1.0, smoothFactor: 1.0 }).addTo(routeMap);
+                routeMap.fitBounds(curved, { padding: [40, 40] });
             } else if (latlngs.length === 1) {
                 routeMap.setView(latlngs[0], 14);
                 document.getElementById('route-total-km').innerText = '0.00 km (1 PS)';
