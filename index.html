@@ -1059,7 +1059,7 @@
     </div>
 
     <!-- Load Local Stations Dataset & Precomputed Road Routes Geometry -->
-    <script src="data/stations.js?v=20261101_v19"></script>
+    <script src="data/stations.js?v=20261104_v20"></script>
     <script defer src="data/routes_geometry.js"></script>
 
     <!-- Main Application JavaScript Logic -->
@@ -1120,7 +1120,7 @@
 
         // Initialize Data (LocalStorage -> window.INITIAL_STATIONS -> fetch fallback)
         async function initializeDataset() {
-            const DATASET_VERSION = "2026-11-01_v19_mptc_zptc_election_data";
+            const DATASET_VERSION = "2026-11-04_v20_mptc_zptc_google_mapping_final";
             const savedVer = localStorage.getItem('POLICE_ELECTION_DATASET_VERSION');
             if (savedVer !== DATASET_VERSION) {
                 localStorage.removeItem('POLICE_ELECTION_STATIONS_DATA');
@@ -1145,7 +1145,7 @@
             }
 
             try {
-                const res = await fetch('data/stations.json?v=20261101_v19');
+                const res = await fetch('data/stations.json?v=20261104_v20');
                 allStations = await res.json();
                 console.log('Loaded from fetch:', allStations.length);
             } catch (err) {
