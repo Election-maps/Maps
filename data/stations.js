@@ -31824,8 +31824,8 @@ window.INITIAL_STATIONS = [
         "pc":  "",
         "hg":  "",
         "others":  "",
-        "latitude":  "18.711483999999999",
-        "longitude":  "80.404696000000001",
+        "latitude":  "18.710989",
+        "longitude":  "84.402712",
         "route_staff":  "Chebotula Prasadrao, HC 1104,\nVajrapukotturu PS, 9493575517",
         "route_staff_ph_no":  "9493575517"
     },
